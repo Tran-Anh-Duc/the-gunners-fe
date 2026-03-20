@@ -1,8 +1,7 @@
 <template>
-  <div>
-    <h2>authLayout</h2>
+  <div class="auth-layout">
+    <div class="auth-container">
+      <router-view />
+    </div>
   </div>
 </template>
-
-<script setup lang="ts">
-</script>

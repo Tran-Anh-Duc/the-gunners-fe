@@ -4,6 +4,7 @@ import DashboardView from '@/views/admin/DashboardView.vue'
 import type { AppRoute } from '@/types/router.ts'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
+import setupGuards from './guards.ts'
 
 const routes: AppRoute = [
   {
@@ -46,5 +47,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes
 })
+
+setupGuards(router)
 
 export default router

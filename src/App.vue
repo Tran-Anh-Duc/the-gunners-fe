@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1>🚀 The Gunners FE</h1>
+    <RouterView />
   </div>
 </template>
 
