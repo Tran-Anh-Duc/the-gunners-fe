@@ -7,6 +7,7 @@ export const useAuthStore = defineStore('auth', {
     user: null as LoginResponse | null,
     token: '' as string,
     loading: false,
+    expires_in: 0 as number,
   }),
 
   actions: {
@@ -17,7 +18,10 @@ export const useAuthStore = defineStore('auth', {
         this.token = res.data.data.access_token
         this.expires_in = res.data.data.expires_in
         localStorage.setItem('token', this.token)
-        localStorage.setItem('token_expired_at', String(Date.now() + Number(this.expires_in) * 1000))
+        localStorage.setItem(
+          'token_expired_at',
+          String(Date.now() + Number(this.expires_in) * 1000),
+        )
         return true
       } catch (e) {
         console.log('login error', e)
@@ -29,7 +33,10 @@ export const useAuthStore = defineStore('auth', {
     logout() {
       this.user = null
       this.token = ''
+      this.loading = false
       localStorage.removeItem('token')
+      localStorage.removeItem('token_expired_at')
+      window.location.href = '/login'
     },
   },
 })

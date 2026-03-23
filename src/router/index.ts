@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '@/views/auth/LoginView.vue'
-import DashboardView from '@/views/admin/DashboardView.vue'
+import DashboardView from '@/views/admin/dashboard/DashboardView.vue'
 import type { AppRoute } from '@/types/router.ts'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
@@ -27,12 +27,12 @@ const routes: AppRoute = [
     component: AdminLayout,
     meta: {
       requiresAuth: true,
-      title: 'Dashboard',
+      title: 'Admin',
     },
     children: [
       {
         path: '',
-        name: 'dashboard',
+        name: 'admin.dashboard',
         component: DashboardView,
       },
     ],

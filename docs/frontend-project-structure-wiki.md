@@ -43,9 +43,9 @@ src/
 │   │   └── AppPagination.vue
 │   │
 │   └── layout/
-│       ├── AppHeader.vue
-│       ├── AppSidebar.vue
-│       └── AppBreadcrumb.vue
+│       ├── AdminHeader.vue
+│       ├── AdminSidebar.vue
+│       └── AdminBreadcrumb.vue
 │
 ├── constants/
 │   ├── route-name.ts
