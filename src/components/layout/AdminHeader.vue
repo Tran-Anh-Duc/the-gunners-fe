@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Menu } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth.store'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 
 defineProps<{
   isMobile: boolean
@@ -11,7 +13,13 @@ const emit = defineEmits<{
 }>()
 
 const authStore = useAuthStore()
+const route = useRoute()
 
+const pageTitle = computed(() => {
+  return String(route.meta.title || 'Admin')
+})
+
+console.log(pageTitle)
 const handleLogout = () => {
   authStore.logout()
 }
@@ -20,19 +28,12 @@ const handleLogout = () => {
 <template>
   <div class="header">
     <div class="header-left">
-      <el-button
-        v-if="isMobile"
-        :icon="Menu"
-        text
-        @click="emit('open-drawer')"
-      />
-      <span class="header-title">Admin</span>
+      <el-button v-if="isMobile" :icon="Menu" text @click="emit('open-drawer')" />
+      <span class="header-title">{{ pageTitle }}</span>
     </div>
 
     <div class="header-right">
-      <el-button type="danger" @click="handleLogout">
-        Logout
-      </el-button>
+      <el-button type="danger" @click="handleLogout"> Logout </el-button>
     </div>
   </div>
 </template>

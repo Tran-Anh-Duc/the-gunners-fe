@@ -1,12 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '@/views/auth/LoginView.vue'
 import DashboardView from '@/views/admin/dashboard/DashboardView.vue'
-import type { AppRoute } from '@/types/router.ts'
+import type { AppRoutes } from '@/types/router.ts'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import setupGuards from './guards.ts'
+import UserListView from '@/views/admin/users/UserListView.vue'
 
-const routes: AppRoute = [
+const routes: AppRoutes = [
   {
     path: '/login',
     component: AuthLayout,
@@ -34,6 +35,17 @@ const routes: AppRoute = [
         path: '',
         name: 'admin.dashboard',
         component: DashboardView,
+        meta: {
+          title: 'Dashboard',
+        },
+      },
+      {
+        path: 'users',
+        name: 'admin.users',
+        component: UserListView,
+        meta: {
+          title: 'Users',
+        },
       },
     ],
   },
@@ -45,7 +57,7 @@ const routes: AppRoute = [
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
 })
 
 setupGuards(router)

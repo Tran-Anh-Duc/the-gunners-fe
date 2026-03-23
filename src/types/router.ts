@@ -6,6 +6,8 @@ export interface AppRouteMeta {
   title?: string
 }
 
-export interface AppRoute extends RouteRecordRaw {
+export type AppRoute = RouteRecordRaw & {
   meta?: AppRouteMeta
 }
+
+export type AppRoutes = AppRoute[]
