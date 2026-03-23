@@ -1,26 +1,29 @@
-import type {NavigationGuardNext, RouteLocationNormalized, RouteLocationNormalizedLoaded, Router} from 'vue-router'
+import type { Router } from 'vue-router'
 
 export default function setupGuards(router: Router) {
-  router.beforeEach((to:RouteLocationNormalized, from: RouteLocationNormalizedLoaded, next: NavigationGuardNext) => {
+  router.beforeEach((to) => {
     const token = localStorage.getItem('token')
-
-    // set title
+    const tokenExpiredAt = localStorage.getItem('token_expired_at')
     if (to.meta.title) {
       document.title = String(to.meta.title)
     }
 
-    // chưa login mà vào admin
-    if (to.meta.requiresAuth && !token) {
-      next('/login')
-      return
+    const isAuthenticated =
+      !!token &&
+      !!tokenExpiredAt &&
+      Date.now() < Number(tokenExpiredAt)
+
+    if (token && tokenExpiredAt && Date.now() >= Number(tokenExpiredAt)) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('token_expired_at')
     }
 
-    // đã login mà vào login
-    if (to.meta.guestOnly && token) {
-      next('/admin')
-      return
+    if (to.meta.requiresAuth && !isAuthenticated) {
+      return '/login'
     }
 
-    next()
+    if (to.meta.guestOnly && isAuthenticated) {
+      return '/admin'
+    }
   })
 }

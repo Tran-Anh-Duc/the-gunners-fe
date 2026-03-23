@@ -28,9 +28,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // token hết hạn / chưa login
       localStorage.removeItem('token')
-
+      localStorage.removeItem('token_expired_at')
       // redirect login
-      window.location.href = '/login'
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
     }
 
     return Promise.reject(error)

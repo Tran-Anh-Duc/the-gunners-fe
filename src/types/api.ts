@@ -17,3 +17,8 @@ export interface ApiResponse<T> {
   data: T
   locale: string
 }
+
+export interface LogoutResponse {
+  message: string
+  locale: string
+}

@@ -15,7 +15,9 @@ export const useAuthStore = defineStore('auth', {
         this.loading = true
         const res = await loginApi(data)
         this.token = res.data.data.access_token
+        this.expires_in = res.data.data.expires_in
         localStorage.setItem('token', this.token)
+        localStorage.setItem('token_expired_at', String(Date.now() + Number(this.expires_in) * 1000))
         return true
       } catch (e) {
         console.log('login error', e)
