@@ -220,7 +220,6 @@ onMounted(() => {
       <el-form label-width="120px">
         <el-form-item label="Tên">
           <el-input v-model="form.name" autocomplete="off" />
-	        
         </el-form-item>
 
         <el-form-item label="Email">
