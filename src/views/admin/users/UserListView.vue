@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import AppTable from '@/components/common/AppTable.vue'
 import type { TableColumn } from '@/types/table.ts'
-import { getUserList } from '@/api/user.api.ts'
+import { getUserList, createUserApi, showUserApi } from '@/api/user.api.ts'
 import type { User } from '@/types/user.ts'
 import { ref, onMounted, reactive } from 'vue'
+import AppModal from '@/components/common/AppModal.vue'
+import { ElMessage } from 'element-plus'
 
 const columns: TableColumn[] = [
   { prop: 'name', label: 'Tên' },
@@ -41,6 +43,18 @@ const pagination = reactive({
 const users = ref<User[]>([])
 
 const showCreateModal = ref(false)
+const modalMode = ref<'create' | 'edit' | 'view'>('create')
+
+const handleCloseCreateModal = () => {
+  showCreateModal.value = false
+  resetCreateForm()
+}
+
+const handleOpenCreateModal = () => {
+  modalMode.value = 'create'
+  resetCreateForm()
+  showCreateModal.value = true
+}
 
 const form = reactive({
   business_id: 1,
@@ -54,6 +68,13 @@ const form = reactive({
   is_owner: false,
   is_active: true,
 })
+
+const resetCreateForm = () => {
+  form.name = ''
+  form.email = ''
+  form.password = ''
+  form.phone = ''
+}
 
 const fetchUsers = async () => {
   try {
@@ -93,9 +114,15 @@ const handlePageChange = (page: number) => {
   fetchUsers()
 }
 
-const handleAction = (payload: { key: string; row: Record<string, any> }) => {
+const handleAction = async (payload: { key: string; row: Record<string, any> }) => {
   if (payload.key === 'edit') {
-    console.log('edit', payload.row)
+    modalMode.value = 'edit'
+    await handleViewUser(payload.row.id)
+  }
+
+  if (payload.key === 'view') {
+    modalMode.value = 'view'
+    await handleViewUser(payload.row.id)
   }
 
   if (payload.key === 'delete') {
@@ -103,18 +130,37 @@ const handleAction = (payload: { key: string; row: Record<string, any> }) => {
   }
 }
 
+const handleViewUser = async (id: number) => {
+  try {
+    const res = await showUserApi(id)
+    const user = res.data.data
+    form.name = user.name || ''
+    form.email = user.email || ''
+    form.password = ''
+    form.phone = user.phone || ''
+    console.log('User detail:', user)
+    showCreateModal.value = true
+  } catch (error) {
+    console.error(error)
+  }
+}
+
 const handleSubmit = async () => {
   try {
-    await createUserApi(form)
-
+    loading.value = true
+    await createUserApi({
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      phone: form.phone,
+    })
     ElMessage.success('Tạo user thành công')
-
-    showCreateModal.value = false
-
-    // reload list
-    handleSearch()
+    handleCloseCreateModal()
+    await fetchUsers()
   } catch (e) {
     ElMessage.error('Tạo thất bại')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -122,33 +168,7 @@ onMounted(() => {
   fetchUsers()
 })
 </script>
-
 <template>
-  <el-dialog v-model="showCreateModal" title="Thêm user" class="user-dialog" destroy-on-close>
-    <el-form class="user-form" :model="form" label-width="120px">
-      <el-form-item label="Tên">
-        <el-input v-model="form.name" />
-      </el-form-item>
-
-      <el-form-item label="Email">
-        <el-input v-model="form.email" />
-      </el-form-item>
-
-      <el-form-item label="Password">
-        <el-input v-model="form.password" type="password" show-password />
-      </el-form-item>
-
-      <el-form-item label="SĐT">
-        <el-input v-model="form.phone" />
-      </el-form-item>
-    </el-form>
-
-    <template #footer>
-      <el-button @click="showCreateModal = false">Huỷ</el-button>
-      <el-button type="primary" @click="handleSubmit">Tạo mới</el-button>
-    </template>
-  </el-dialog>
-
   <div class="user-list-view">
     <div class="search-box">
       <div class="search-box__header">
@@ -166,12 +186,12 @@ onMounted(() => {
           </el-form-item>
 
           <el-form-item>
-            <el-button type="primary" @click="handleSearch"> Tìm kiếm </el-button>
-            <el-button @click="handleReset"> Đặt lại </el-button>
+            <el-button type="primary" @click="handleSearch"> Tìm kiếm</el-button>
+            <el-button @click="handleReset"> Đặt lại</el-button>
           </el-form-item>
         </el-form>
 
-        <el-button type="success" @click="showCreateModal = true"> + Thêm mới </el-button>
+        <el-button type="success" @click="handleOpenCreateModal"> + Thêm mới</el-button>
       </div>
     </div>
 
@@ -183,6 +203,38 @@ onMounted(() => {
       @action="handleAction"
       @page-change="handlePageChange"
     />
+    <AppModal
+      v-model="showCreateModal"
+      :title="
+        modalMode === 'create'
+          ? 'Tạo mới user'
+          : modalMode === 'edit'
+            ? 'Cập nhật user'
+            : 'Chi tiết user'
+      "
+      width="50%"
+      @cancel="handleCloseCreateModal"
+      @close="handleCloseCreateModal"
+      @confirm="handleSubmit"
+    >
+      <el-form label-width="120px">
+        <el-form-item label="Tên">
+          <el-input v-model="form.name" autocomplete="off" />
+        </el-form-item>
+
+        <el-form-item label="Email">
+          <el-input v-model="form.email" autocomplete="new-email" />
+        </el-form-item>
+
+        <el-form-item label="Password">
+          <el-input v-model="form.password" type="password" autocomplete="new-password" />
+        </el-form-item>
+
+        <el-form-item label="Phone">
+          <el-input v-model="form.phone" autocomplete="new-phone" />
+        </el-form-item>
+      </el-form>
+    </AppModal>
   </div>
 </template>
 <style>
@@ -199,10 +251,5 @@ onMounted(() => {
 
 .search-form .el-form-item {
   margin-bottom: 20px;
-}
-
-.dialog-body {
-  height: 50vh; /* 👈 chiều cao = 50% màn hình */
-  overflow-y: auto; /* 👈 có scroll nếu dài */
 }
 </style>

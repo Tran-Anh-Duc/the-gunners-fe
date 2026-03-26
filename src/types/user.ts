@@ -27,3 +27,12 @@ export interface UserListData {
   per_page: number
   total: number
 }
+
+ export interface CreateUserRequest {
+  name: string
+  email: string
+  password: string
+  phone?: string
+}
+
+export interface CreateUserResponse extends User {}
