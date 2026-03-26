@@ -138,6 +138,9 @@ const handleViewUser = async (id: number) => {
     form.email = user.email || ''
     form.password = ''
     form.phone = user.phone || ''
+    form.role = user.role || ''
+    form.membership_status = user.membership_status || ''
+    form.is_active = user.is_active
     console.log('User detail:', user)
     showCreateModal.value = true
   } catch (error) {
@@ -212,28 +215,98 @@ onMounted(() => {
             ? 'Cập nhật user'
             : 'Chi tiết user'
       "
-      width="50%"
       @cancel="handleCloseCreateModal"
       @close="handleCloseCreateModal"
       @confirm="handleSubmit"
     >
-      <el-form label-width="120px">
-        <el-form-item label="Tên">
-          <el-input v-model="form.name" autocomplete="off" />
-        </el-form-item>
+      <template v-if="modalMode === 'view'">
+        <el-form label-width="180px">
+          <el-form-item label="ID">
+            <span>{{ userDetail?.id }}</span>
+          </el-form-item>
 
-        <el-form-item label="Email">
-          <el-input v-model="form.email" autocomplete="new-email" />
-        </el-form-item>
+          <el-form-item label="Business ID">
+            <span>{{ userDetail?.business_id }}</span>
+          </el-form-item>
 
-        <el-form-item label="Password">
-          <el-input v-model="form.password" type="password" autocomplete="new-password" />
-        </el-form-item>
+          <el-form-item label="Business name">
+            <span>{{ userDetail?.business_name }}</span>
+          </el-form-item>
 
-        <el-form-item label="Phone">
-          <el-input v-model="form.phone" autocomplete="new-phone" />
-        </el-form-item>
-      </el-form>
+          <el-form-item label="Tên">
+            <span>{{ userDetail?.name }}</span>
+          </el-form-item>
+
+          <el-form-item label="Email">
+            <span>{{ userDetail?.email }}</span>
+          </el-form-item>
+
+          <el-form-item label="Phone">
+            <span>{{ userDetail?.phone || '-' }}</span>
+          </el-form-item>
+
+          <el-form-item label="Role">
+            <span>{{ userDetail?.role }}</span>
+          </el-form-item>
+
+          <el-form-item label="Membership status">
+            <span>{{ userDetail?.membership_status }}</span>
+          </el-form-item>
+
+          <el-form-item label="Kích hoạt">
+            <span>{{ userDetail?.is_active ? 'Đang hoạt động' : 'Ngưng hoạt động' }}</span>
+          </el-form-item>
+
+          <el-form-item label="Owner">
+            <span>{{ userDetail?.is_owner ? 'Có' : 'Không' }}</span>
+          </el-form-item>
+
+          <el-form-item label="Ngày tham gia">
+            <span>{{ userDetail?.joined_at || '-' }}</span>
+          </el-form-item>
+
+          <el-form-item label="Đăng nhập cuối">
+            <span>{{ userDetail?.last_login_at || '-' }}</span>
+          </el-form-item>
+        </el-form>
+      </template>
+
+      <template v-else>
+        <el-form label-width="180px" label-position="left">
+          <el-form-item label="Tên">
+            <el-input v-model="form.name" autocomplete="off" />
+          </el-form-item>
+
+          <el-form-item label="Email">
+            <el-input v-model="form.email" autocomplete="new-email" />
+          </el-form-item>
+
+          <el-form-item v-if="modalMode === 'create'" label="Password">
+            <el-input
+              v-model="form.password"
+              type="password"
+              autocomplete="new-password"
+              show-password
+            />
+          </el-form-item>
+
+          <el-form-item label="Phone">
+            <el-input v-model="form.phone" autocomplete="off" />
+          </el-form-item>
+
+          <el-form-item label="Role">
+            <el-input v-model="form.role" autocomplete="off" />
+          </el-form-item>
+
+          <el-form-item label="Membership status">
+            <el-input v-model="form.membership_status" autocomplete="off" />
+          </el-form-item>
+        </el-form>
+      </template>
+
+      <template v-if="modalMode === 'view'" #footer>
+        <el-button @click="handleCloseCreateModal">Đóng</el-button>
+      </template>
     </AppModal>
   </div>
 </template>
