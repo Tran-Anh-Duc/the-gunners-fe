@@ -57,6 +57,7 @@ const handleOpenCreateModal = () => {
 }
 
 const form = reactive({
+  id: 0,
   business_id: 1,
   name: '',
   email: '',
@@ -134,6 +135,7 @@ const handleViewUser = async (id: number) => {
   try {
     const res = await showUserApi(id)
     const user = res.data.data
+    form.id = user.id || 0
     form.name = user.name || ''
     form.email = user.email || ''
     form.password = ''
@@ -168,6 +170,7 @@ const handleSubmit = async () => {
 }
 
 onMounted(() => {
+  console.log('OK mounted')
   fetchUsers()
 })
 </script>
@@ -215,58 +218,45 @@ onMounted(() => {
             ? 'Cập nhật user'
             : 'Chi tiết user'
       "
-      @cancel="handleCloseCreateModal"
       @close="handleCloseCreateModal"
       @confirm="handleSubmit"
     >
       <template v-if="modalMode === 'view'">
         <el-form label-width="180px">
           <el-form-item label="ID">
-            <span>{{ userDetail?.id }}</span>
+            <span>{{ form?.id }}</span>
           </el-form-item>
 
           <el-form-item label="Business ID">
-            <span>{{ userDetail?.business_id }}</span>
-          </el-form-item>
-
-          <el-form-item label="Business name">
-            <span>{{ userDetail?.business_name }}</span>
+            <span>{{ form?.business_id }}</span>
           </el-form-item>
 
           <el-form-item label="Tên">
-            <span>{{ userDetail?.name }}</span>
+            <span>{{ form?.name }}</span>
           </el-form-item>
 
           <el-form-item label="Email">
-            <span>{{ userDetail?.email }}</span>
+            <span>{{ form?.email }}</span>
           </el-form-item>
 
           <el-form-item label="Phone">
-            <span>{{ userDetail?.phone || '-' }}</span>
+            <span>{{ form?.phone || '-' }}</span>
           </el-form-item>
 
           <el-form-item label="Role">
-            <span>{{ userDetail?.role }}</span>
+            <span>{{ form?.role }}</span>
           </el-form-item>
 
           <el-form-item label="Membership status">
-            <span>{{ userDetail?.membership_status }}</span>
+            <span>{{ form?.membership_status }}</span>
           </el-form-item>
 
           <el-form-item label="Kích hoạt">
-            <span>{{ userDetail?.is_active ? 'Đang hoạt động' : 'Ngưng hoạt động' }}</span>
+            <span>{{ form?.is_active ? 'Đang hoạt động' : 'Ngưng hoạt động' }}</span>
           </el-form-item>
 
           <el-form-item label="Owner">
-            <span>{{ userDetail?.is_owner ? 'Có' : 'Không' }}</span>
-          </el-form-item>
-
-          <el-form-item label="Ngày tham gia">
-            <span>{{ userDetail?.joined_at || '-' }}</span>
-          </el-form-item>
-
-          <el-form-item label="Đăng nhập cuối">
-            <span>{{ userDetail?.last_login_at || '-' }}</span>
+            <span>{{ form?.is_owner ? 'Có' : 'Không' }}</span>
           </el-form-item>
         </el-form>
       </template>
@@ -322,6 +312,7 @@ onMounted(() => {
   flex: 1;
 }
 
+/*noinspection CssUnusedSymbol*/
 .search-form .el-form-item {
   margin-bottom: 20px;
 }

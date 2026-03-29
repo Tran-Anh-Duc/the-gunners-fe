@@ -1,7 +1,9 @@
 interface DataSearch {
-  keyword?: string
+  name?: string
+  email?: string
+  phone?: string
   page?: number
-  limit?: number
+  per_page?: number
 }
 
 export interface User {
