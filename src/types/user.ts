@@ -37,4 +37,18 @@ export interface UserListData {
   phone?: string
 }
 
+
+export interface UpdateUserPayload {
+  name: string
+  email: string
+  password?: string
+  phone?: string
+  role?: string
+  membership_status?: string
+  is_owner?: boolean
+  is_active?: boolean
+  business_id?: number
+}
+
+
 export interface CreateUserResponse extends User {}

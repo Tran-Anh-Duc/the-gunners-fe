@@ -1,5 +1,12 @@
 import api from '@/utils/axios.ts'
-import type {DataSearch, User, UserListData, CreateUserResponse, CreateUserRequest} from '@/types/user.ts'
+import type {
+  DataSearch,
+  User,
+  UserListData,
+  CreateUserResponse,
+  CreateUserRequest,
+  UpdateUserPayload
+} from '@/types/user.ts'
 import type {ApiResponse} from "@/types/api.ts";
 
 const DOMAIN = 'users'
@@ -14,6 +21,10 @@ export const createUserApi = (data: CreateUserRequest) => {
 }
 export const showUserApi = (id:number) => {
   return api.get<ApiResponse<User>>(`${DOMAIN}/${id}`,)
+}
+
+export const  updateUserApi  = (id: number, data:UpdateUserPayload) => {
+  return api.put<ApiResponse<User>>(`${DOMAIN}/${id}`,data)
 }
 
 

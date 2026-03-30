@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import AppTable from '@/components/common/AppTable.vue'
 import type { TableColumn } from '@/types/table.ts'
-import { getUserList, createUserApi, showUserApi } from '@/api/user.api.ts'
-import type { User } from '@/types/user.ts'
+import { getUserList, createUserApi, showUserApi, updateUserApi } from '@/api/user.api.ts'
+import type { UpdateUserPayload, User } from '@/types/user.ts'
 import { ref, onMounted, reactive, computed } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
-import {useAuthStore} from "@/stores/auth.store.ts";
+import { useAuthStore } from '@/stores/auth.store.ts'
 
 const columns: TableColumn[] = [
   { prop: 'name', label: 'Tên' },
@@ -59,7 +59,7 @@ const handleOpenCreateModal = () => {
 
 const form = reactive({
   id: 0,
-  business_id: 1,
+  business_id: null as number | null,
   business_name: '',
   name: '',
   email: '',
@@ -73,10 +73,18 @@ const form = reactive({
 })
 
 const resetCreateForm = () => {
+  form.id = 0
+  form.business_id = 1
+  form.business_name = ''
   form.name = ''
   form.email = ''
   form.password = ''
   form.phone = ''
+  form.avatar = ''
+  form.role = 'staff'
+  form.membership_status = null
+  form.is_owner = false
+  form.is_active = true
 }
 
 const authStore = useAuthStore()
@@ -112,6 +120,7 @@ const fetchUsers = async () => {
 }
 
 const handleSearch = () => {
+  pagination.page = 1
   fetchUsers()
 }
 
@@ -150,12 +159,15 @@ const handleViewUser = async (id: number) => {
     form.id = user.id || 0
     form.name = user.name || ''
     form.email = user.email || ''
-    form.password =  user.password ||''
+    form.password = ''
     form.phone = user.phone || ''
     form.role = user.role || ''
     form.business_name = user.business_name || ''
     form.membership_status = user.membership_status || ''
     form.is_active = user.is_active
+    form.business_id = user.business_id
+    form.avatar = user.avatar
+    form.is_owner = user.is_owner
     showCreateModal.value = true
   } catch (error) {
     console.error(error)
@@ -165,17 +177,38 @@ const handleViewUser = async (id: number) => {
 const handleSubmit = async () => {
   try {
     loading.value = true
-    await createUserApi({
-      name: form.name,
-      email: form.email,
-      password: form.password,
-      phone: form.phone,
-    })
-    ElMessage.success('Tạo user thành công')
+    if (!form.id) {
+      await createUserApi({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        phone: form.phone,
+        avatar: form.avatar,
+        is_active: form.is_active,
+        business_id: form.business_id,
+        role: form.role,
+      })
+      ElMessage.success('Tạo người dùng thành công')
+    } else {
+      const payload: UpdateUserPayload = {
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        is_active: form.is_active,
+      }
+      if (form.avatar) {
+        payload.avatar = form.avatar
+      }
+      if (canEditPassword.value && form.password.trim() !== '') {
+        payload.password = form.password
+      }
+      await updateUserApi(form.id, payload)
+      ElMessage.success('Cập nhật người dùng thành công')
+    }
     handleCloseCreateModal()
     await fetchUsers()
   } catch (e) {
-    ElMessage.error('Tạo thất bại')
+    ElMessage.error(form.id ? 'Cập nhật thất bại' : 'Tạo thất bại')
   } finally {
     loading.value = false
   }
@@ -235,7 +268,7 @@ onMounted(() => {
       <template v-if="modalMode === 'view'">
         <el-form label-width="180px">
           <el-form-item label="ID" v-show="false">
-            <span >{{ form?.id }}</span>
+            <span>{{ form?.id }}</span>
           </el-form-item>
 
           <el-form-item label="Business ID" v-show="false">
@@ -263,7 +296,7 @@ onMounted(() => {
           </el-form-item>
 
           <el-form-item label="Trạng thái tại cửa hàng">
-            <span>{{ form?.membership_status ? 'Đang hoạt động' : 'Ngưng hoạt động'  }}</span>
+            <span>{{ form?.membership_status ? 'Đang hoạt động' : 'Ngưng hoạt động' }}</span>
           </el-form-item>
 
           <el-form-item label="Kích hoạt">
@@ -278,6 +311,9 @@ onMounted(() => {
 
       <template v-else>
         <el-form label-width="180px" label-position="left">
+          <el-form-item label="ID" v-show="false">
+            <el-input v-model="form.id" autocomplete="off" />
+          </el-form-item>
           <el-form-item label="Tên">
             <el-input v-model="form.name" autocomplete="off" />
           </el-form-item>
@@ -299,11 +335,14 @@ onMounted(() => {
             <el-input v-model="form.phone" autocomplete="off" />
           </el-form-item>
 
-          <el-form-item label="Role">
-            <el-input v-model="form.role" autocomplete="off" />
+          <el-form-item label="Vai trò">
+            <el-select v-model="form.role" placeholder="Chọn vai trò">
+              <el-option label="manager" :value="manager" />
+              <el-option label="staff" :value="staff" />
+            </el-select>
           </el-form-item>
 
-          <el-form-item label="Trạng thái tại cửa hàng">
+          <el-form-item label="Trạng thái tại cửa hàng" v-if="modalMode !== 'create'">
             <el-input v-model="form.membership_status" autocomplete="off" :disabled="true" />
           </el-form-item>
 
