@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { loginApi } from '@/api/auth.api'
 import type { LoginRequest, LoginResponse } from '@/types/api'
+import { jwtDecode } from 'jwt-decode'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -13,10 +14,12 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async login(data: LoginRequest) {
       try {
-        this.loading = true
+	      this.loading = true
         const res = await loginApi(data)
         this.token = res.data.data.access_token
         this.expires_in = res.data.data.expires_in
+        const decoded: any = jwtDecode(this.token)
+        this.user = decoded.data
         localStorage.setItem('token', this.token)
         localStorage.setItem(
           'token_expired_at',

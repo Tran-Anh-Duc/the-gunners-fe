@@ -19,7 +19,6 @@ const pageTitle = computed(() => {
   return String(route.meta.title || 'Admin')
 })
 
-console.log(pageTitle)
 const handleLogout = () => {
   authStore.logout()
 }

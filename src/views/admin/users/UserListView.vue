@@ -3,9 +3,10 @@ import AppTable from '@/components/common/AppTable.vue'
 import type { TableColumn } from '@/types/table.ts'
 import { getUserList, createUserApi, showUserApi } from '@/api/user.api.ts'
 import type { User } from '@/types/user.ts'
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, computed } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
+import {useAuthStore} from "@/stores/auth.store.ts";
 
 const columns: TableColumn[] = [
   { prop: 'name', label: 'Tên' },
@@ -13,14 +14,14 @@ const columns: TableColumn[] = [
   { prop: 'phone', label: 'SĐT' },
   { prop: 'business_name', label: 'Cửa hàng' },
   { prop: 'role', label: 'Vai trò' },
-  { prop: 'membership_status', label: 'Trạng thái thành viên' },
-  { prop: 'is_active', label: 'Hoạt động' },
-
+  { prop: 'membership_status', label: 'Trạng thái tại cửa hàng' },
+  { prop: 'is_active', label: 'Trạng thái tài khoản' },
   {
     label: 'Thao tác',
     type: 'actions',
     actions: [
       { key: 'edit', label: 'Sửa', type: 'primary' },
+      { key: 'view', label: 'chi tiết', type: 'warning' },
       { key: 'delete', label: 'Xóa', type: 'danger' },
     ],
   },
@@ -59,13 +60,14 @@ const handleOpenCreateModal = () => {
 const form = reactive({
   id: 0,
   business_id: 1,
+  business_name: '',
   name: '',
   email: '',
   password: '',
   phone: '',
   avatar: '',
   role: 'staff',
-  membership_status: 'active',
+  membership_status: null as string | null,
   is_owner: false,
   is_active: true,
 })
@@ -76,6 +78,14 @@ const resetCreateForm = () => {
   form.password = ''
   form.phone = ''
 }
+
+const authStore = useAuthStore()
+console.log(authStore)
+const currentUserId = computed(() => authStore.user?.id)
+console.log(currentUserId)
+const canEditPassword = computed(() => {
+  return modalMode.value === 'create' || form.id === currentUserId.value
+})
 
 const fetchUsers = async () => {
   try {
@@ -88,7 +98,11 @@ const fetchUsers = async () => {
       phone: searchForm.phone,
     })
     const responseData = res.data.data
-    users.value = responseData.items
+    users.value = responseData.items.map((item: any) => ({
+      ...item,
+      membership_status: item.membership_status ? 'hoạt động' : 'Ngừng hoạt động',
+      is_active: item.is_active ? 'hoạt động' : 'Ngừng hoạt động',
+    }))
     pagination.page = responseData.current_page
     pagination.pageSize = responseData.per_page
     pagination.total = responseData.total
@@ -141,9 +155,9 @@ const handleViewUser = async (id: number) => {
     form.password = ''
     form.phone = user.phone || ''
     form.role = user.role || ''
+    form.business_name = user.business_name || ''
     form.membership_status = user.membership_status || ''
     form.is_active = user.is_active
-    console.log('User detail:', user)
     showCreateModal.value = true
   } catch (error) {
     console.error(error)
@@ -170,7 +184,6 @@ const handleSubmit = async () => {
 }
 
 onMounted(() => {
-  console.log('OK mounted')
   fetchUsers()
 })
 </script>
@@ -223,12 +236,16 @@ onMounted(() => {
     >
       <template v-if="modalMode === 'view'">
         <el-form label-width="180px">
-          <el-form-item label="ID">
-            <span>{{ form?.id }}</span>
+          <el-form-item label="ID" v-show="false">
+            <span >{{ form?.id }}</span>
           </el-form-item>
 
-          <el-form-item label="Business ID">
+          <el-form-item label="Business ID" v-show="false">
             <span>{{ form?.business_id }}</span>
+          </el-form-item>
+
+          <el-form-item label="Business name">
+            <span>{{ form?.business_name }}</span>
           </el-form-item>
 
           <el-form-item label="Tên">
@@ -247,8 +264,8 @@ onMounted(() => {
             <span>{{ form?.role }}</span>
           </el-form-item>
 
-          <el-form-item label="Membership status">
-            <span>{{ form?.membership_status }}</span>
+          <el-form-item label="Trạng thái tại cửa hàng">
+            <span>{{ form?.membership_status ? 'Đang hoạt động' : 'Ngưng hoạt động'  }}</span>
           </el-form-item>
 
           <el-form-item label="Kích hoạt">
@@ -288,8 +305,23 @@ onMounted(() => {
             <el-input v-model="form.role" autocomplete="off" />
           </el-form-item>
 
-          <el-form-item label="Membership status">
-            <el-input v-model="form.membership_status" autocomplete="off" />
+          <el-form-item label="Trạng thái tại cửa hàng">
+            <el-input v-model="form.membership_status" autocomplete="off" :disabled="true" />
+          </el-form-item>
+
+          <el-form-item label="Trạng thái tài khoản">
+            <el-select v-model="form.is_active" placeholder="Chọn trạng thái">
+              <el-option label="Hoạt động" :value="true" />
+              <el-option label="Ngừng hoạt động" :value="false" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="Business name">
+            <el-input v-model="form.business_name" autocomplete="off" :disabled="!form.is_owner" />
+          </el-form-item>
+
+          <el-form-item label="Business ID" v-show="false">
+            <el-input v-model="form.business_id" />
           </el-form-item>
         </el-form>
       </template>
