@@ -14,12 +14,13 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async login(data: LoginRequest) {
       try {
-	      this.loading = true
+        this.loading = true
         const res = await loginApi(data)
         this.token = res.data.data.access_token
         this.expires_in = res.data.data.expires_in
         const decoded: any = jwtDecode(this.token)
         this.user = decoded.data
+        console.log(this.user)
         localStorage.setItem('token', this.token)
         localStorage.setItem(
           'token_expired_at',
@@ -40,6 +41,27 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('token')
       localStorage.removeItem('token_expired_at')
       window.location.href = '/login'
+    },
+
+    init() {
+      const token = localStorage.getItem('token')
+      const expired = localStorage.getItem('token_expired_at')
+
+      if (!token || !expired) return
+
+      if (Date.now() > Number(expired)) {
+        this.logout()
+        return
+      }
+
+      this.token = token
+
+      try {
+        const decoded: any = jwtDecode(token)
+        this.user = decoded.data
+      } catch (e) {
+        this.logout()
+      }
     },
   },
 })

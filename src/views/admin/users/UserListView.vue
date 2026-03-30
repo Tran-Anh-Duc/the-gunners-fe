@@ -80,9 +80,7 @@ const resetCreateForm = () => {
 }
 
 const authStore = useAuthStore()
-console.log(authStore)
 const currentUserId = computed(() => authStore.user?.id)
-console.log(currentUserId)
 const canEditPassword = computed(() => {
   return modalMode.value === 'create' || form.id === currentUserId.value
 })
@@ -152,7 +150,7 @@ const handleViewUser = async (id: number) => {
     form.id = user.id || 0
     form.name = user.name || ''
     form.email = user.email || ''
-    form.password = ''
+    form.password =  user.password ||''
     form.phone = user.phone || ''
     form.role = user.role || ''
     form.business_name = user.business_name || ''
@@ -288,7 +286,7 @@ onMounted(() => {
             <el-input v-model="form.email" autocomplete="new-email" />
           </el-form-item>
 
-          <el-form-item v-if="modalMode === 'create'" label="Password">
+          <el-form-item v-if="canEditPassword" label="Password">
             <el-input
               v-model="form.password"
               type="password"
