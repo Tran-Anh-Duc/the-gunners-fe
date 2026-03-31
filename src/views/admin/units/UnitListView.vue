@@ -1,21 +1,20 @@
 <script setup lang="ts">
 import AppTable from '@/components/common/AppTable.vue'
 import type { TableColumn } from '@/types/table.ts'
-import { getUserList, createUserApi, showUserApi, updateUserApi } from '@/api/user.api.ts'
-import type { UpdateUserPayload, User } from '@/types/user.ts'
 import { ref, onMounted, reactive, computed } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth.store.ts'
+import type { User } from '@/types/user.ts'
+import type { Unit } from '@/types/unit.ts'
+import { getUnitList } from '@/api/unit.api.ts'
 
 const columns: TableColumn[] = [
-  { prop: 'name', label: 'Tên' },
-  { prop: 'email', label: 'Email' },
-  { prop: 'phone', label: 'SĐT' },
+  { prop: 'code', label: 'Mã đơn vị' },
+  { prop: 'name', label: 'Tên ơn vị' },
+  { prop: 'description', label: 'Mô tả' },
   { prop: 'business_name', label: 'Cửa hàng' },
-  { prop: 'role', label: 'Vai trò' },
-  { prop: 'membership_status', label: 'Trạng thái tại cửa hàng' },
-  { prop: 'is_active', label: 'Trạng thái tài khoản' },
+  { prop: 'is_active', label: 'Trạng thái' },
   {
     label: 'Thao tác',
     type: 'actions',
@@ -26,125 +25,32 @@ const columns: TableColumn[] = [
     ],
   },
 ]
-
+const units = ref<Unit[]>([])
 const loading = ref(false)
-
-const searchForm = reactive({
-  name: '',
-  email: '',
-  phone: '',
-})
-
 const pagination = reactive({
   page: 1,
   pageSize: 10,
   total: 50,
 })
-
-const users = ref<User[]>([])
-
-const showCreateModal = ref(false)
-const modalMode = ref<'create' | 'edit' | 'view'>('create')
-
-const handleCloseCreateModal = () => {
-  showCreateModal.value = false
-  resetCreateForm()
-}
-
-const handleOpenCreateModal = () => {
-  modalMode.value = 'create'
-  resetCreateForm()
-  showCreateModal.value = true
-}
-
-const form = reactive({
-  id: 0,
-  business_id: null as number | null,
-  business_name: '',
+const searchForm = reactive({
   name: '',
-  email: '',
-  password: '',
-  phone: '',
-  avatar: '',
-  role: 'staff',
-  membership_status: null as string | null,
-  is_owner: false,
-  is_active: true,
+  code: '',
 })
-
-const resetCreateForm = () => {
-  form.id = 0
-  form.business_id = 1
-  form.business_name = ''
-  form.name = ''
-  form.email = ''
-  form.password = ''
-  form.phone = ''
-  form.avatar = ''
-  form.role = 'staff'
-  form.membership_status = null
-  form.is_owner = false
-  form.is_active = true
-}
-
-const authStore = useAuthStore()
-const currentUserId = computed(() => authStore.user?.id)
-const canEditPassword = computed(() => {
-  return modalMode.value === 'create' || form.id === currentUserId.value
-})
-
-const fetchUsers = async () => {
-  try {
-    loading.value = true
-    const res = await getUserList({
-      page: pagination.page,
-      per_page: pagination.pageSize,
-      name: searchForm.name,
-      email: searchForm.email,
-      phone: searchForm.phone,
-    })
-    const responseData = res.data.data
-    users.value = responseData.items.map((item: any) => ({
-      ...item,
-      membership_status: item.membership_status ? 'hoạt động' : 'Ngừng hoạt động',
-      is_active: item.is_active ? 'hoạt động' : 'Ngừng hoạt động',
-    }))
-    pagination.page = responseData.current_page
-    pagination.pageSize = responseData.per_page
-    pagination.total = responseData.total
-  } catch (error) {
-    console.error('lỗi fetchUsers:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleSearch = () => {
-  pagination.page = 1
-  fetchUsers()
-}
-
-const handleReset = () => {
-  searchForm.name = ''
-  searchForm.email = ''
-  searchForm.phone = ''
-  fetchUsers()
-}
-
 const handlePageChange = (page: number) => {
   pagination.page = page
-  fetchUsers()
+  fetchUnits()
 }
-
 const handleAction = async (payload: { key: string; row: Record<string, any> }) => {
   if (payload.key === 'edit') {
     modalMode.value = 'edit'
-    await handleViewUser(payload.row.id)
+    console.log('edit', payload.row)
+    //await handleViewUser(payload.row.id)
   }
 
   if (payload.key === 'view') {
     modalMode.value = 'view'
-    await handleViewUser(payload.row.id)
+    console.log('view', payload.row)
+    //await handleViewUser(payload.row.id)
   }
 
   if (payload.key === 'delete') {
@@ -152,108 +58,84 @@ const handleAction = async (payload: { key: string; row: Record<string, any> }) 
   }
 }
 
-const handleViewUser = async (id: number) => {
-  try {
-    const res = await showUserApi(id)
-    const user = res.data.data
-    form.id = user.id || 0
-    form.name = user.name || ''
-    form.email = user.email || ''
-    form.password = ''
-    form.phone = user.phone || ''
-    form.role = user.role || ''
-    form.business_name = user.business_name || ''
-    form.membership_status = user.membership_status || ''
-    form.is_active = user.is_active
-    form.business_id = user.business_id
-    form.avatar = user.avatar
-    form.is_owner = user.is_owner
-    showCreateModal.value = true
-  } catch (error) {
-    console.error(error)
-  }
+const handleSearch = () => {
+  pagination.page = 1
+  fetchUnits()
 }
 
-const handleSubmit = async () => {
+const handleReset = () => {
+  searchForm.name = ''
+  searchForm.code = ''
+  fetchUnits()
+}
+
+//modal
+const showCreateModal = ref(false)
+const modalMode = ref<'create' | 'edit' | 'view'>('create')
+const authStore = useAuthStore()
+
+//lấy thông tin user đang đăng nhập
+const currentUserId = computed(() => authStore.user?.id)
+const canEditPassword = computed(() => {
+  return modalMode.value === 'create' || form.id === currentUserId.value
+})
+
+const fetchUnits = async () => {
   try {
     loading.value = true
-    if (!form.id) {
-      await createUserApi({
-        name: form.name,
-        email: form.email,
-        password: form.password,
-        phone: form.phone,
-        avatar: form.avatar,
-        is_active: form.is_active,
-        business_id: form.business_id,
-        role: form.role,
-      })
-      ElMessage.success('Tạo người dùng thành công')
-    } else {
-      const payload: UpdateUserPayload = {
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        is_active: form.is_active,
-      }
-      if (form.avatar) {
-        payload.avatar = form.avatar
-      }
-      if (canEditPassword.value && form.password.trim() !== '') {
-        payload.password = form.password
-      }
-      await updateUserApi(form.id, payload)
-      ElMessage.success('Cập nhật người dùng thành công')
-    }
-    handleCloseCreateModal()
-    await fetchUsers()
-  } catch (e) {
-    ElMessage.error(form.id ? 'Cập nhật thất bại' : 'Tạo thất bại')
+    const res = await getUnitList({
+      page: pagination.page,
+      per_page: pagination.pageSize,
+      name: searchForm.name,
+      code: searchForm.code,
+    })
+    const responseData = res.data.data
+    units.value = responseData.items.map((item: any) => ({
+      ...item,
+      is_active: item.is_active ? 'hoạt động' : 'Ngừng hoạt động',
+    }))
+    pagination.page = responseData.current_page
+    pagination.pageSize = responseData.per_page
+    pagination.total = responseData.total
+  } catch (error) {
+    console.error('lỗi fetchUnits:', error)
   } finally {
     loading.value = false
   }
 }
 
 onMounted(() => {
-  fetchUsers()
+  fetchUnits()
 })
 </script>
 <template>
-  <div class="user-list-view">
+  <div class="unit-list-view">
     <div class="search-box">
       <div class="search-box__header">
         <el-form :inline="true" class="search-form">
           <el-form-item label="Tên">
             <el-input v-model="searchForm.name" placeholder="Nhập tên" clearable />
           </el-form-item>
-
-          <el-form-item label="Email">
-            <el-input v-model="searchForm.email" placeholder="Nhập email" clearable />
+          <el-form-item label="Mã">
+            <el-input v-model="searchForm.code" placeholder="Nhập mã" clearable />
           </el-form-item>
-
-          <el-form-item label="SĐT">
-            <el-input v-model="searchForm.phone" placeholder="Nhập số điện thoại" clearable />
-          </el-form-item>
-
           <el-form-item>
             <el-button type="primary" @click="handleSearch"> Tìm kiếm</el-button>
             <el-button @click="handleReset"> Đặt lại</el-button>
           </el-form-item>
         </el-form>
-
         <el-button type="success" @click="handleOpenCreateModal"> + Thêm mới</el-button>
       </div>
     </div>
-
     <AppTable
-      :data="users"
+      :data="units"
       :columns="columns"
       :loading="loading"
       :pagination="pagination"
       @action="handleAction"
       @page-change="handlePageChange"
     />
-    <AppModal
+	  <AppModal
       v-model="showCreateModal"
       :title="
         modalMode === 'create'

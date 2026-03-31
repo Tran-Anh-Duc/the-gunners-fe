@@ -11,7 +11,7 @@ import type {ApiResponse} from "@/types/api.ts";
 
 const DOMAIN = 'users'
 
-export const getUserList = (params: { per_page: any; phone: any; name: any; page: any; email: any }) => {
+export const getUserList = (params: DataSearch) => {
   return api.get<ApiResponse<UserListData>>(`${DOMAIN}`, {
     params,
   })
