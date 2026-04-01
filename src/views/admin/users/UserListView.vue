@@ -275,35 +275,35 @@ onMounted(() => {
             <span>{{ form?.business_id }}</span>
           </el-form-item>
 
-          <el-form-item label="Business name">
+          <el-form-item label="Business name" label-position="left">
             <span>{{ form?.business_name }}</span>
           </el-form-item>
 
-          <el-form-item label="Tên">
+          <el-form-item label="Tên" label-position="left">
             <span>{{ form?.name }}</span>
           </el-form-item>
 
-          <el-form-item label="Email">
+          <el-form-item label="Email" label-position="left">
             <span>{{ form?.email }}</span>
           </el-form-item>
 
-          <el-form-item label="Phone">
+          <el-form-item label="Phone" label-position="left">
             <span>{{ form?.phone || '-' }}</span>
           </el-form-item>
 
-          <el-form-item label="Role">
+          <el-form-item label="Role" label-position="left">
             <span>{{ form?.role }}</span>
           </el-form-item>
 
-          <el-form-item label="Trạng thái tại cửa hàng">
+          <el-form-item label="Trạng thái tại cửa hàng" label-position="left">
             <span>{{ form?.membership_status ? 'Đang hoạt động' : 'Ngưng hoạt động' }}</span>
           </el-form-item>
 
-          <el-form-item label="Kích hoạt">
+          <el-form-item label="Kích hoạt" label-position="left">
             <span>{{ form?.is_active ? 'Đang hoạt động' : 'Ngưng hoạt động' }}</span>
           </el-form-item>
 
-          <el-form-item label="Owner">
+          <el-form-item label="Owner" label-position="left">
             <span>{{ form?.is_owner ? 'Có' : 'Không' }}</span>
           </el-form-item>
         </el-form>

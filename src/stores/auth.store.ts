@@ -20,7 +20,6 @@ export const useAuthStore = defineStore('auth', {
         this.expires_in = res.data.data.expires_in
         const decoded: any = jwtDecode(this.token)
         this.user = decoded.data
-        console.log(this.user)
         localStorage.setItem('token', this.token)
         localStorage.setItem(
           'token_expired_at',
