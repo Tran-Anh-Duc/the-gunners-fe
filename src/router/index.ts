@@ -7,6 +7,7 @@ import AdminLayout from '@/layouts/AdminLayout.vue'
 import setupGuards from './guards.ts'
 import UserListView from '@/views/admin/users/UserListView.vue'
 import UnitListView from '@/views/admin/units/UnitListView.vue'
+import WarehouseListView from '@/views/admin/Warehouses/WarehouseListView.vue'
 
 const routes: AppRoutes = [
   {
@@ -54,6 +55,14 @@ const routes: AppRoutes = [
         component: UnitListView,
         meta: {
           title: 'Units',
+        },
+      },
+      {
+        path: 'warehouses',
+        name: 'admin.warehouses',
+        component: WarehouseListView,
+        meta: {
+          title: 'Warehouses',
         },
       },
     ],

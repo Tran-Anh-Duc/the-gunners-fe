@@ -222,26 +222,32 @@ onMounted(() => {
   <div class="user-list-view">
     <div class="search-box">
       <div class="search-box__header">
-        <el-form :inline="true" class="search-form">
-          <el-form-item label="Tên">
-            <el-input v-model="searchForm.name" placeholder="Nhập tên" clearable />
-          </el-form-item>
+        <div class="search-box__left">
+          <el-form class="search-form" label-position="top">
+            <el-form-item label="Tên" class="search-form__item">
+              <el-input v-model="searchForm.name" placeholder="Nhập tên" clearable />
+            </el-form-item>
 
-          <el-form-item label="Email">
-            <el-input v-model="searchForm.email" placeholder="Nhập email" clearable />
-          </el-form-item>
+            <el-form-item label="Email" class="search-form__item">
+              <el-input v-model="searchForm.email" placeholder="Nhập email" clearable />
+            </el-form-item>
 
-          <el-form-item label="SĐT">
-            <el-input v-model="searchForm.phone" placeholder="Nhập số điện thoại" clearable />
-          </el-form-item>
+            <el-form-item label="SĐT" class="search-form__item">
+              <el-input v-model="searchForm.phone" placeholder="Nhập số điện thoại" clearable />
+            </el-form-item>
+          </el-form>
+        </div>
 
-          <el-form-item>
-            <el-button type="primary" @click="handleSearch"> Tìm kiếm</el-button>
-            <el-button @click="handleReset"> Đặt lại</el-button>
-          </el-form-item>
-        </el-form>
+        <div class="search-box__right">
+          <div class="search-box__actions">
+            <el-button type="primary" @click="handleSearch">Tìm kiếm</el-button>
+            <el-button @click="handleReset">Đặt lại</el-button>
+          </div>
 
-        <el-button type="success" @click="handleOpenCreateModal"> + Thêm mới</el-button>
+          <el-button type="success" @click="handleOpenCreateModal" class="search-box__create">
+            + Thêm mới
+          </el-button>
+        </div>
       </div>
     </div>
 
@@ -253,6 +259,7 @@ onMounted(() => {
       @action="handleAction"
       @page-change="handlePageChange"
     />
+
     <AppModal
       v-model="showCreateModal"
       :title="
@@ -267,53 +274,58 @@ onMounted(() => {
     >
       <template v-if="modalMode === 'view'">
         <el-form label-width="180px">
-          <el-form-item label="ID" v-show="false">
+          <el-form-item v-show="false" label="ID">
             <span>{{ form?.id }}</span>
           </el-form-item>
 
-          <el-form-item label="Business ID" v-show="false">
+          <el-form-item v-show="false" label="Business ID">
             <span>{{ form?.business_id }}</span>
           </el-form-item>
 
-          <el-form-item label="Business name" label-position="left">
-            <span>{{ form?.business_name }}</span>
+          <el-form-item label="Business name">
+            <span class="form-text">{{ form?.business_name }}</span>
           </el-form-item>
 
-          <el-form-item label="Tên" label-position="left">
-            <span>{{ form?.name }}</span>
+          <el-form-item label="Tên">
+            <span class="form-text">{{ form?.name }}</span>
           </el-form-item>
 
-          <el-form-item label="Email" label-position="left">
-            <span>{{ form?.email }}</span>
+          <el-form-item label="Email">
+            <span class="form-text">{{ form?.email }}</span>
           </el-form-item>
 
-          <el-form-item label="Phone" label-position="left">
-            <span>{{ form?.phone || '-' }}</span>
+          <el-form-item label="Phone">
+            <span class="form-text">{{ form?.phone || '-' }}</span>
           </el-form-item>
 
-          <el-form-item label="Role" label-position="left">
-            <span>{{ form?.role }}</span>
+          <el-form-item label="Vai trò">
+            <span class="form-text">{{ form?.role }}</span>
           </el-form-item>
 
-          <el-form-item label="Trạng thái tại cửa hàng" label-position="left">
-            <span>{{ form?.membership_status ? 'Đang hoạt động' : 'Ngưng hoạt động' }}</span>
+          <el-form-item label="Trạng thái tại cửa hàng">
+            <span class="form-text">
+              {{ form?.membership_status ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
+            </span>
           </el-form-item>
 
-          <el-form-item label="Kích hoạt" label-position="left">
-            <span>{{ form?.is_active ? 'Đang hoạt động' : 'Ngưng hoạt động' }}</span>
+          <el-form-item label="Kích hoạt">
+            <span class="form-text">
+              {{ form?.is_active ? 'Đang hoạt động' : 'Ngưng hoạt động' }}
+            </span>
           </el-form-item>
 
-          <el-form-item label="Owner" label-position="left">
-            <span>{{ form?.is_owner ? 'Có' : 'Không' }}</span>
+          <el-form-item label="Owner">
+            <span class="form-text">{{ form?.is_owner ? 'Có' : 'Không' }}</span>
           </el-form-item>
         </el-form>
       </template>
 
       <template v-else>
         <el-form label-width="180px" label-position="left">
-          <el-form-item label="ID" v-show="false">
+          <el-form-item v-show="false" label="ID">
             <el-input v-model="form.id" autocomplete="off" />
           </el-form-item>
+
           <el-form-item label="Tên">
             <el-input v-model="form.name" autocomplete="off" />
           </el-form-item>
@@ -336,18 +348,18 @@ onMounted(() => {
           </el-form-item>
 
           <el-form-item label="Vai trò">
-            <el-select v-model="form.role" placeholder="Chọn vai trò">
-              <el-option label="manager" :value="manager" />
-              <el-option label="staff" :value="staff" />
+            <el-select v-model="form.role" placeholder="Chọn vai trò" style="width: 100%">
+              <el-option label="manager" value="manager" />
+              <el-option label="staff" value="staff" />
             </el-select>
           </el-form-item>
 
-          <el-form-item label="Trạng thái tại cửa hàng" v-if="modalMode !== 'create'">
-            <el-input v-model="form.membership_status" autocomplete="off" :disabled="true" />
+          <el-form-item v-if="modalMode !== 'create'" label="Trạng thái tại cửa hàng">
+            <el-input v-model="form.membership_status" autocomplete="off" disabled />
           </el-form-item>
 
           <el-form-item label="Trạng thái tài khoản">
-            <el-select v-model="form.is_active" placeholder="Chọn trạng thái">
+            <el-select v-model="form.is_active" placeholder="Chọn trạng thái" style="width: 100%">
               <el-option label="Hoạt động" :value="true" />
               <el-option label="Ngừng hoạt động" :value="false" />
             </el-select>
@@ -357,7 +369,7 @@ onMounted(() => {
             <el-input v-model="form.business_name" autocomplete="off" :disabled="!form.is_owner" />
           </el-form-item>
 
-          <el-form-item label="Business ID" v-show="false">
+          <el-form-item v-show="false" label="Business ID">
             <el-input v-model="form.business_id" />
           </el-form-item>
         </el-form>
@@ -369,7 +381,14 @@ onMounted(() => {
     </AppModal>
   </div>
 </template>
-<style>
+
+<style scoped>
+.user-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .search-box__header {
   display: flex;
   justify-content: space-between;
@@ -377,12 +396,87 @@ onMounted(() => {
   gap: 16px;
 }
 
-.search-form {
+.search-box__left {
   flex: 1;
+  min-width: 0;
 }
 
-/*noinspection CssUnusedSymbol*/
-.search-form .el-form-item {
-  margin-bottom: 20px;
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+
+.search-form__item {
+  width: 220px;
+  margin-bottom: 0;
+}
+
+.search-form__item :deep(.el-input) {
+  width: 100%;
+}
+
+.search-form__item :deep(.el-form-item__label) {
+  padding-bottom: 6px;
+  line-height: 1.2;
+  font-weight: 500;
+}
+
+.search-box__right {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.search-box__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.search-box__actions .el-button {
+  min-width: 110px;
+}
+
+.search-box__create {
+  white-space: nowrap;
+}
+
+.form-text {
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .search-box__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box__right {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .search-form {
+    width: 100%;
+    gap: 12px;
+  }
+
+  .search-form__item {
+    width: 100%;
+  }
+
+  .search-box__actions {
+    width: 100%;
+  }
+
+  .search-box__actions .el-button {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .search-box__create {
+    width: 100%;
+  }
 }
 </style>
