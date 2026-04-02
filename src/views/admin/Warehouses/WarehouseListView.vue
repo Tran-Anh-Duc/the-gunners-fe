@@ -6,7 +6,7 @@ import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth.store.ts'
 import type { Warehouse } from '@/types/warehouse.ts'
-import { getWarehouseList } from '@/api/warehouse.api.ts'
+import { getWarehouseList, showWarehouseApi } from '@/api/warehouse.api.ts'
 import type { Unit } from '@/types/unit.ts'
 import type { Pagination } from '@/types/pagination.ts'
 
@@ -133,9 +133,24 @@ const fetchWarehouses = async () => {
   }
 }
 
-const handleViewWarehouse = async () => {
+const handleViewWarehouse = async (id: number) => {
   try {
-    console.log('handleViewWarehouse')
+    const res = await showWarehouseApi(id)
+    const warehouse = res.data.data
+    form.id = warehouse.id || 0
+    form.name = warehouse.name || ''
+    form.code = warehouse.code || ''
+    form.address = warehouse.address || ''
+    form.status = warehouse.status || ''
+    showCreateModal.value = true
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const handleSubmit = async () => {
+  try {
+    console.log('here')
   } catch (error) {
     console.error(error)
   }
@@ -189,6 +204,75 @@ onMounted(() => {
       @action="handleAction"
       @page-change="handlePageChange"
     />
+    <AppModal
+      v-model="showCreateModal"
+      :title="
+        modalMode === 'create'
+          ? 'Tạo mới kho'
+          : modalMode === 'edit'
+            ? 'Cập nhật kho'
+            : 'Chi tiết kho'
+      "
+      @close="handleCloseCreateModal"
+      @confirm="handleSubmit"
+    >
+      <template v-if="modalMode === 'view'">
+        <el-form label-width="140px" label-position="left">
+          <el-form-item label="Tên">
+            <span class="unit-text">{{ form?.name }}</span>
+          </el-form-item>
+
+          <el-form-item label="Mã">
+            <span class="unit-text">{{ form?.code }}</span>
+          </el-form-item>
+
+          <el-form-item label="Mô tả">
+            <span class="unit-text">{{ form?.address }}</span>
+          </el-form-item>
+
+          <el-form-item label="Trạng thái">
+            <el-tag :type="form?.status == 'active' ? 'success' : 'info'">
+              {{ form?.status == 'active' ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
+            </el-tag>
+          </el-form-item>
+        </el-form>
+      </template>
+
+      <template v-else>
+        <el-form label-width="140px" label-position="left">
+          <el-form-item v-show="false" label="ID">
+            <el-input v-model="form.id" autocomplete="off" />
+          </el-form-item>
+
+          <el-form-item label="Tên">
+            <el-input v-model="form.name" autocomplete="off" />
+          </el-form-item>
+
+          <el-form-item label="Mã">
+            <el-input v-model="form.code" autocomplete="off" />
+          </el-form-item>
+
+          <el-form-item label="Địa chỉ">
+            <el-input v-model="form.address" autocomplete="off" />
+          </el-form-item>
+
+          <el-form-item label="Trạng thái">
+            <el-select v-model="form.status" placeholder="Chọn trạng thái" style="width: 100%">
+              <el-option label="Hoạt động" :value="'active'" />
+              <el-option label="Ngừng hoạt động" :value="'unactive'" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="Business ID" v-show="false">
+            <el-input v-model="form.business_id" />
+          </el-form-item>
+        </el-form>
+      </template>
+
+      <template v-if="modalMode === 'view'" #footer>
+        <el-button @click="handleCloseCreateModal">Đóng</el-button>
+      </template>
+    </AppModal>
   </div>
 </template>
 
@@ -250,9 +334,10 @@ onMounted(() => {
 .search-box__create {
   white-space: nowrap;
 }
- .search-box{
-	  margin-bottom: 15px;
-  }
+
+.search-box {
+  margin-bottom: 15px;
+}
 
 @media (max-width: 768px) {
   .search-box__header {
@@ -287,7 +372,5 @@ onMounted(() => {
   .search-box__create {
     width: 100%;
   }
-  
-  
 }
 </style>

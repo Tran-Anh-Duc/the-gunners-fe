@@ -9,3 +9,6 @@ export const getWarehouseList = (params: WarehouseListParams) => {
     params
   })
 }
+export const showWarehouseApi = (id: number) => {
+  return api.get<ApiResponse<Warehouse>>(`${DOMAIN}/${id}`)
+}
