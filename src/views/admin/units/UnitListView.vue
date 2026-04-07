@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppTable from '@/components/common/AppTable.vue'
 import type { TableColumn } from '@/types/table.ts'
-import { ref, onMounted, reactive, computed } from 'vue'
+import { ref, onMounted, reactive, computed, vShow } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth.store.ts'
@@ -135,7 +135,6 @@ const handleSubmit = async () => {
     loading.value = true
     const payload: UnitFormRequest = {
       name: form.name,
-      code: form.code,
       description: form.description,
       is_active: form.is_active,
     }
@@ -255,8 +254,8 @@ onMounted(() => {
             <el-input v-model="form.name" autocomplete="off" />
           </el-form-item>
 
-          <el-form-item label="Mã">
-            <el-input v-model="form.code" autocomplete="off" />
+          <el-form-item label="Mã" v-show="modalMode == 'edit'">
+            <el-input v-model="form.code" autocomplete="off" :disabled="modalMode !== 'create'" />
           </el-form-item>
 
           <el-form-item label="Mô tả">
