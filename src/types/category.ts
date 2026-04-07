@@ -1,34 +1,30 @@
-export interface WarehouseListParams {
+import type { Warehouse } from '@/types/warehouse.ts'
+
+export interface CategoryListParams {
 	page?: number
 	per_page?: number
 	sort_by?: string
 	sort_order?: 'asc' | 'desc'
-	code?: string
 	name?: string
 	is_active?: boolean
 }
-
-export interface Warehouse {
+export interface Category {
 	id: number
 	business_id: number
-	code: string
 	name: string
-	address: string | null
+	description: string | null
 	created_at: string
 	updated_at: string
 	deleted_at: string | null
 	is_active?: boolean
 }
-
-export interface WarehouseFormRequest {
-	code?: string
+export interface CategoryFormRequest {
 	name?: string
-	address?: string
+	description?: string
 	is_active?: string
 }
-
-export interface WarehouseListData {
-	items: Warehouse[]
+export interface CategoryListData {
+	items: Category[]
 	current_page?: number
 	per_page?: number
 	total?: number

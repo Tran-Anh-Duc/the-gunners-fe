@@ -12,6 +12,9 @@ export const getWarehouseList = (params: WarehouseListParams) => {
 export const showWarehouseApi = (id: number) => {
   return api.get<ApiResponse<Warehouse>>(`${DOMAIN}/${id}`)
 }
-export const updateUnitApi = (id:number,data:WarehouseFormRequest) => {
+export const updateWarehouseApi = (id:number,data:WarehouseFormRequest) => {
 	return api.put<ApiResponse<Warehouse>>(`${DOMAIN}/${id}`,data)
+}
+export const createWarehouseApi = (data:WarehouseFormRequest) => {
+	return api.post<ApiResponse<Warehouse>>(`${DOMAIN}`,data)
 }

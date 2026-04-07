@@ -4,19 +4,19 @@ import type { TableColumn } from '@/types/table.ts'
 import { ref, onMounted, reactive, computed } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
-import type { Warehouse, WarehouseFormRequest } from '@/types/warehouse.ts'
+import type { Category, CategoryFormRequest } from '@/types/category.ts'
 import {
-	createWarehouseApi,
-	getWarehouseList,
-	showWarehouseApi,
-	updateWarehouseApi,
-} from '@/api/warehouse.api.ts'
+	getCategoryList,
+	showCategoryApi,
+	createCategoryApi,
+	updateCategoryApi,
+} from '@/api/category.api.ts'
 import type { Pagination } from '@/types/pagination.ts'
-
+import type { Warehouse } from '@/types/warehouse.ts'
+//table
 const columns: TableColumn[] = [
-	{ prop: 'code', label: 'Mã kho' },
-	{ prop: 'name', label: 'Tên kho' },
-	{ prop: 'address', label: 'Địa chỉ kho' },
+	{ prop: 'name', label: 'Tên danh mục' },
+	{ prop: 'description', label: 'Mô tả' },
 	{ prop: 'is_active', label: 'Trạng thái' },
 	{ prop: 'created_at', label: 'Ngày tạo' },
 	{
@@ -29,70 +29,62 @@ const columns: TableColumn[] = [
 		],
 	},
 ]
-
+//form
 const form = reactive({
 	id: 0,
 	business_id: null as number | null,
 	name: '' | null,
-	code: '' | null,
-	address: '' | null,
+	description: '' | null,
 	is_active: true | false,
 })
-
-const warehouses = ref<Warehouse[]>([])
+const categories = ref<Category[]>([])
 const loading = ref(false)
 const pagination = reactive<Pagination>({
 	page: 1,
 	pageSize: 10,
 	total: 0,
 })
-
 const searchForm = reactive({
 	name: '',
-	code: '',
 	is_active: null,
 })
 const resetCreateForm = () => {
 	form.id = 0
 	form.business_id = 0
 	form.name = ''
-	form.code = ''
-	form.address = ''
+	form.description = ''
 	form.is_active = true
 }
-
+//even
 const handlePageChange = (page: number) => {
 	pagination.page = page
-	fetchWarehouses()
+	fetchCategories()
 }
-
 const handleAction = async (payload: { key: string; row: Record<string, any> }) => {
 	if (payload.key === 'edit') {
 		modalMode.value = 'edit'
-		await handleViewWarehouse(payload.row.id)
+		await handleViewCategory(payload.row.id)
 	}
 
 	if (payload.key === 'view') {
 		modalMode.value = 'view'
-		await handleViewWarehouse(payload.row.id)
+		await handleViewCategory(payload.row.id)
 	}
 
 	if (payload.key === 'delete') {
 		console.log('delete', payload.row)
 	}
 }
-const handleSearch = () => {
-	pagination.page = 1
-	fetchWarehouses()
-}
 const handleReset = () => {
 	searchForm.name = ''
-	searchForm.code = ''
 	searchForm.is_active = null
-	fetchWarehouses()
+	fetchCategories()
 }
-
-//Modal
+const handleSearch = () => {
+	pagination.page = 1
+	fetchCategories()
+}
+//modal
 const showCreateModal = ref(false)
 const modalMode = ref<'create' | 'edit' | 'view'>('create')
 const handleCloseCreateModal = () => {
@@ -104,17 +96,15 @@ const handleOpenCreateModal = () => {
 	resetCreateForm()
 	showCreateModal.value = true
 }
-//lấy thông tin user đang đăng nhập => lấy hàm useAuthUser từ auth.ts để dùng
 
-//list funtion
-const fetchWarehouses = async () => {
+//funtion
+const fetchCategories = async () => {
 	try {
 		loading.value = true
-		const res = await getWarehouseList({
+		const res = await getCategoryList({
 			page: pagination.page,
 			per_page: pagination.pageSize,
 			name: searchForm.name,
-			code: searchForm.code,
 			is_active:
 				searchForm.is_active === null || searchForm.is_active === undefined
 					? undefined
@@ -123,7 +113,7 @@ const fetchWarehouses = async () => {
 						: 0,
 		})
 		const responseData = res.data.data
-		warehouses.value = responseData.items.map((item: any) => ({
+		categories.value = responseData.items.map((item: any) => ({
 			...item,
 			is_active: item.is_active ? 'hoạt động' : 'Ngừng hoạt động',
 		}))
@@ -137,49 +127,45 @@ const fetchWarehouses = async () => {
 	}
 }
 
-const handleViewWarehouse = async (id: number) => {
+const handleViewCategory = async (id:number) => {
 	try {
-		const res = await showWarehouseApi(id)
-		const warehouse = res.data.data
-		form.id = warehouse.id || 0
-		form.name = warehouse.name || ''
-		form.code = warehouse.code || ''
-		form.address = warehouse.address || ''
-		form.is_active = Boolean(warehouse.is_active)
+		const res = await showCategoryApi(id)
+		const category = res.data.data
+		form.id = category.id
+		form.name = category.name
+		form.description = category.description
+		form.is_active = Boolean(category.is_active)
 		showCreateModal.value = true
 	} catch (error) {
 		console.error(error)
 	}
 }
-
 const handleSubmit = async () => {
 	try {
 		loading.value = true
-		const payload: WarehouseFormRequest = {
+		const payload :  CategoryFormRequest ={
 			name: form.name,
-			address: form.address,
+			description: form.description,
 			is_active: form.is_active,
 		}
-		if (!form.id) {
+		if (!form.id){
 			//create
-			await createWarehouseApi(payload)
-			ElMessage.success('Tạo kho thành công')
-		} else {
+			await createCategoryApi(payload)
+			ElMessage.success('Tạo danh mục thành công')
+		}else {
 			//edit
-			await updateWarehouseApi(form.id, payload)
-			ElMessage.success('Cập nhật kho thành công')
+			await updateCategoryApi(form.id,payload)
+			ElMessage.success('Cập nhật danh mục thành công')
 		}
 		handleCloseCreateModal()
-		await fetchWarehouses()
-	} catch (error) {
+		await fetchCategories()
+	}catch (error){
 		console.error(error)
-	} finally {
-		loading.value = false
 	}
 }
 
 onMounted(() => {
-	fetchWarehouses()
+	fetchCategories()
 })
 </script>
 <template>
@@ -190,10 +176,6 @@ onMounted(() => {
 					<el-form class="search-form" label-position="top">
 						<el-form-item label="Tên" class="search-form__item">
 							<el-input v-model="searchForm.name" placeholder="Nhập tên" clearable />
-						</el-form-item>
-
-						<el-form-item label="Mã" class="search-form__item">
-							<el-input v-model="searchForm.code" placeholder="Nhập mã" clearable />
 						</el-form-item>
 
 						<el-form-item
@@ -228,9 +210,8 @@ onMounted(() => {
 				</div>
 			</div>
 		</div>
-
 		<AppTable
-			:data="warehouses"
+			:data="categories"
 			:columns="columns"
 			:loading="loading"
 			:pagination="pagination"
@@ -255,12 +236,8 @@ onMounted(() => {
 						<span class="unit-text">{{ form?.name }}</span>
 					</el-form-item>
 
-					<el-form-item label="Mã">
-						<span class="unit-text">{{ form?.code }}</span>
-					</el-form-item>
-
-					<el-form-item label="Địa chỉ">
-						<span class="unit-text">{{ form?.address }}</span>
+					<el-form-item label="Mô tả">
+						<span class="unit-text">{{ form?.description }}</span>
 					</el-form-item>
 
 					<el-form-item label="Trạng thái">
@@ -281,16 +258,8 @@ onMounted(() => {
 						<el-input v-model="form.name" autocomplete="off" />
 					</el-form-item>
 
-					<el-form-item label="Mã" v-show="modalMode === 'edit'">
-						<el-input
-							v-model="form.code"
-							autocomplete="off"
-							:disabled="modalMode !== 'create'"
-						/>
-					</el-form-item>
-
-					<el-form-item label="Địa chỉ">
-						<el-input v-model="form.address" autocomplete="off" />
+					<el-form-item label="Mô tả">
+						<el-input v-model="form.description" autocomplete="off" />
 					</el-form-item>
 
 					<el-form-item label="Trạng thái">
@@ -316,7 +285,6 @@ onMounted(() => {
 		</AppModal>
 	</div>
 </template>
-
 <style scoped>
 .search-box__header {
 	display: flex;

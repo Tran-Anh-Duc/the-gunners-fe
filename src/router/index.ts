@@ -8,6 +8,7 @@ import setupGuards from './guards.ts'
 import UserListView from '@/views/admin/users/UserListView.vue'
 import UnitListView from '@/views/admin/units/UnitListView.vue'
 import WarehouseListView from '@/views/admin/Warehouses/WarehouseListView.vue'
+import CategoryListView from '@/views/admin/Categories/CategoryListView.vue'
 
 const routes: AppRoutes = [
   {
@@ -63,6 +64,14 @@ const routes: AppRoutes = [
         component: WarehouseListView,
         meta: {
           title: 'Warehouses',
+        },
+      },
+	    {
+        path: 'categories',
+        name: 'admin.categories',
+        component: CategoryListView,
+        meta: {
+          title: 'Categories',
         },
       },
     ],
