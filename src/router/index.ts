@@ -9,82 +9,91 @@ import UserListView from '@/views/admin/users/UserListView.vue'
 import UnitListView from '@/views/admin/units/UnitListView.vue'
 import WarehouseListView from '@/views/admin/Warehouses/WarehouseListView.vue'
 import CategoryListView from '@/views/admin/Categories/CategoryListView.vue'
+import ProductListView from '@/views/admin/Products/ProductListView.vue'
 
 const routes: AppRoutes = [
-  {
-    path: '/login',
-    component: AuthLayout,
-    meta: {
-      guestOnly: true,
-      title: 'Login',
-    },
-    children: [
-      {
-        path: '',
-        name: 'login',
-        component: LoginView,
-      },
-    ],
-  },
-  {
-    path: '/admin',
-    component: AdminLayout,
-    meta: {
-      requiresAuth: true,
-      title: 'Admin',
-    },
-    children: [
-      {
-        path: '',
-        name: 'admin.dashboard',
-        component: DashboardView,
-        meta: {
-          title: 'Dashboard',
-        },
-      },
-      {
-        path: 'users',
-        name: 'admin.users',
-        component: UserListView,
-        meta: {
-          title: 'Users',
-        },
-      },
-      {
-        path: 'units',
-        name: 'admin.units',
-        component: UnitListView,
-        meta: {
-          title: 'Units',
-        },
-      },
-      {
-        path: 'warehouses',
-        name: 'admin.warehouses',
-        component: WarehouseListView,
-        meta: {
-          title: 'Warehouses',
-        },
-      },
-	    {
-        path: 'categories',
-        name: 'admin.categories',
-        component: CategoryListView,
-        meta: {
-          title: 'Categories',
-        },
-      },
-    ],
-  },
-  {
-    path: '/',
-    redirect: '/login',
-  },
+	{
+		path: '/login',
+		component: AuthLayout,
+		meta: {
+			guestOnly: true,
+			title: 'Login',
+		},
+		children: [
+			{
+				path: '',
+				name: 'login',
+				component: LoginView,
+			},
+		],
+	},
+	{
+		path: '/admin',
+		component: AdminLayout,
+		meta: {
+			requiresAuth: true,
+			title: 'Admin',
+		},
+		children: [
+			{
+				path: '',
+				name: 'admin.dashboard',
+				component: DashboardView,
+				meta: {
+					title: 'Dashboard',
+				},
+			},
+			{
+				path: 'users',
+				name: 'admin.users',
+				component: UserListView,
+				meta: {
+					title: 'Users',
+				},
+			},
+			{
+				path: 'units',
+				name: 'admin.units',
+				component: UnitListView,
+				meta: {
+					title: 'Units',
+				},
+			},
+			{
+				path: 'warehouses',
+				name: 'admin.warehouses',
+				component: WarehouseListView,
+				meta: {
+					title: 'Warehouses',
+				},
+			},
+			{
+				path: 'categories',
+				name: 'admin.categories',
+				component: CategoryListView,
+				meta: {
+					title: 'Categories',
+				},
+			},
+			{
+				path: 'products',
+				name: 'admin.products',
+				component: ProductListView,
+				meta: {
+					title: 'Products',
+				},
+			},
+		],
+	},
+	{
+		path: '/',
+		redirect: '/login',
+	},
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes,
+	history: createWebHistory(),
+	routes,
 })
 
 setupGuards(router)

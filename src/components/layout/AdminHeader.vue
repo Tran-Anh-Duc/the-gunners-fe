@@ -32,7 +32,7 @@ const handleLogout = () => {
     </div>
 
     <div class="header-right">
-      <el-button type="danger" @click="handleLogout"> Logout </el-button>
+      <el-button type="danger" @click="handleLogout"> Logout / Đăng xuất </el-button>
     </div>
   </div>
 </template>

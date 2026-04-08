@@ -1,5 +1,3 @@
-import type { Warehouse } from '@/types/warehouse.ts'
-
 export interface CategoryListParams {
 	page?: number
 	per_page?: number
@@ -21,7 +19,7 @@ export interface Category {
 export interface CategoryFormRequest {
 	name?: string
 	description?: string
-	is_active?: string
+	is_active?: boolean
 }
 export interface CategoryListData {
 	items: Category[]
