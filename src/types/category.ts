@@ -5,6 +5,7 @@ export interface CategoryListParams {
 	sort_order?: 'asc' | 'desc'
 	name?: string
 	is_active?: boolean
+	is_option?: boolean | number
 }
 export interface Category {
 	id: number

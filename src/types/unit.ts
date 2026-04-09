@@ -1,10 +1,11 @@
 export interface UnitListParams {
-  page?: number
-  per_page?: number
-  sort_by?: string
-  sort_order?: 'asc' | 'desc'
-  code?: string
-  name?: string
+	page?: number
+	per_page?: number
+	sort_by?: string
+	sort_order?: 'asc' | 'desc'
+	code?: string
+	name?: string
+	is_option?: boolean | number
 }
 
 export interface Unit {

@@ -12,7 +12,6 @@ import {
 	updateCategoryApi,
 } from '@/api/category.api.ts'
 import type { Pagination } from '@/types/pagination.ts'
-import type { Warehouse } from '@/types/warehouse.ts'
 //table
 const columns: TableColumn[] = [
 	{ prop: 'name', label: 'Tên danh mục' },
@@ -127,7 +126,7 @@ const fetchCategories = async () => {
 	}
 }
 
-const handleViewCategory = async (id:number) => {
+const handleViewCategory = async (id: number) => {
 	try {
 		const res = await showCategoryApi(id)
 		const category = res.data.data
@@ -143,23 +142,23 @@ const handleViewCategory = async (id:number) => {
 const handleSubmit = async () => {
 	try {
 		loading.value = true
-		const payload :  CategoryFormRequest ={
+		const payload: CategoryFormRequest = {
 			name: form.name,
 			description: form.description,
 			is_active: form.is_active,
 		}
-		if (!form.id){
+		if (!form.id) {
 			//create
 			await createCategoryApi(payload)
 			ElMessage.success('Tạo danh mục thành công')
-		}else {
+		} else {
 			//edit
-			await updateCategoryApi(form.id,payload)
+			await updateCategoryApi(form.id, payload)
 			ElMessage.success('Cập nhật danh mục thành công')
 		}
 		handleCloseCreateModal()
 		await fetchCategories()
-	}catch (error){
+	} catch (error) {
 		console.error(error)
 	}
 }

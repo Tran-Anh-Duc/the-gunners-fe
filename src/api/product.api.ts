@@ -17,3 +17,10 @@ export const getProductList = (params: ProductListParams) => {
 export const showProductApi = (id: number) => {
 	return api.get<ApiResponse<Product>>(`${DOMAIN}/${id}`)
 }
+export const createProductApi = (data:ProductFormRequest) => {
+	return api.post<ApiResponse<Product>>(`${DOMAIN}`,data)
+}
+export const updateProductApi = (id:number,data:ProductFormRequest) => {
+	return api.put<ApiResponse<Product>>(`${DOMAIN}/${id}`,data)
+}
+

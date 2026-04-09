@@ -38,9 +38,8 @@ export interface ProductFormRequest {
 	unit_id?: number
 	category_id?: number
 	name?: string
-	track_inventory?: boolean
-	cost_price?: number
-	sale_price?: number
+	sku?: string
+	description?: string
 	is_active?: boolean
 }
 export interface ProductListData {
