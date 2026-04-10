@@ -96,7 +96,7 @@ const handleOpenCreateModal = () => {
 	showCreateModal.value = true
 }
 
-//funtion
+//function
 const fetchCategories = async () => {
 	try {
 		loading.value = true
@@ -309,7 +309,7 @@ onMounted(() => {
 }
 
 .search-form__item--status {
-	width: 160px;
+	width: 220px;
 }
 
 .search-form__item :deep(.el-input),

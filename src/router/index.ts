@@ -10,6 +10,7 @@ import UnitListView from '@/views/admin/units/UnitListView.vue'
 import WarehouseListView from '@/views/admin/Warehouses/WarehouseListView.vue'
 import CategoryListView from '@/views/admin/Categories/CategoryListView.vue'
 import ProductListView from '@/views/admin/Products/ProductListView.vue'
+import CustomerListView from '@/views/admin/Customers/CustomerListView.vue'
 
 const routes: AppRoutes = [
 	{
@@ -81,6 +82,14 @@ const routes: AppRoutes = [
 				component: ProductListView,
 				meta: {
 					title: 'Products',
+				},
+			},
+			{
+				path: 'customers',
+				name: 'admin.customers',
+				component: CustomerListView,
+				meta: {
+					title: 'Customers',
 				},
 			},
 		],

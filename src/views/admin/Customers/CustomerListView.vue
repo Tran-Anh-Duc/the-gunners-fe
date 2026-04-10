@@ -4,23 +4,21 @@ import type { TableColumn } from '@/types/table.ts'
 import { ref, onMounted, reactive, computed } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
-import type { Product, ProductFormRequest } from '@/types/product.ts'
+import type { Customer, CustomerFormRequest } from '@/types/customer.ts'
 import {
-	createProductApi,
-	getProductList,
-	showProductApi,
-	updateProductApi,
-} from '@/api/product.api.ts'
+	getCustomerList,
+	showCustomerApi,
+	createCustomerApi,
+	updateCustomerApi,
+} from '@/api/customer.api.ts'
 import type { Pagination } from '@/types/pagination.ts'
-import { getCategoryList } from '@/api/category.api.ts'
-import { getUnitList } from '@/api/unit.api.ts'
 //table
 const columns: TableColumn[] = [
-	{ prop: 'name', label: 'Tên danh mục' },
-	{ prop: 'sku', label: 'Mã sản phẩm' },
-	{ prop: 'description', label: 'Mô tả' },
-	{ prop: 'unit_name', label: 'Đơn vị' },
-	{ prop: 'category_name', label: 'Nhóm sản pẩm' },
+	{ prop: 'name', label: 'Tên khách hàng' },
+	{ prop: 'phone', label: 'Số điện thoại' },
+	{ prop: 'email', label: 'Email' },
+	{ prop: 'address', label: 'Địa chỉ' },
+	{ prop: 'note', label: 'Ghi chú' },
 	{ prop: 'is_active', label: 'Trạng thái' },
 	{ prop: 'created_at', label: 'Ngày tạo' },
 	{
@@ -33,116 +31,91 @@ const columns: TableColumn[] = [
 		],
 	},
 ]
-
 //form
-const form = reactive({
-	id: 0,
-	business_id: null as number | null,
-	name: '' as string | null,
-	description: '' as string | null,
-	is_active: true as boolean,
-	sku: '' as string | null,
-	unit_id: null as number | null,
-	category_id: null as number | null,
-	category_name: '' as string | null,
-	unit_name: '' as string | null,
-})
-
-const products = ref<Product[]>([])
-//lấy option
-const unitOptions = ref<Unit[]>([])
-const categoryOptions = ref<Category[]>([])
+const customers = ref<Customer[]>([])
 const loading = ref(false)
 const pagination = reactive<Pagination>({
 	page: 1,
 	pageSize: 10,
 	total: 0,
 })
+const form = reactive({
+	id: 0,
+	business_id: null as number | null,
+	name: '' | null,
+	description: '' | null,
+	is_active: true | false,
+})
 const searchForm = reactive({
 	name: '',
+	phone: '',
+	email: '',
 	is_active: null,
 })
 const resetCreateForm = () => {
 	form.id = 0
 	form.business_id = 0
 	form.name = ''
-	form.description = ''
+	form.phone = ''
+	form.email = ''
+	form.address = ''
+	form.note = ''
 	form.is_active = true
-	form.unit_id = null
-	form.category_id = null
-	form.sku = ''
 }
-
 //even
 const handlePageChange = (page: number) => {
 	pagination.page = page
-	fetchProducts()
+	fetchCustomers()
 }
 const handleAction = async (payload: { key: string; row: Record<string, any> }) => {
 	if (payload.key === 'edit') {
 		modalMode.value = 'edit'
-		await handleViewProduct(payload.row.id)
+		await handleViewCustomer(payload.row.id)
 	}
 
 	if (payload.key === 'view') {
 		modalMode.value = 'view'
-		await handleViewProduct(payload.row.id)
+		await handleViewCustomer(payload.row.id)
 	}
 
 	if (payload.key === 'delete') {
 		console.log('delete', payload.row)
 	}
 }
-const handleReset = () => {
-	searchForm.name = ''
-	searchForm.is_active = null
-	fetchProducts()
-}
 const handleSearch = () => {
 	pagination.page = 1
-	fetchProducts()
+	fetchCustomers()
 }
+const handleReset = () => {
+	searchForm.name = ''
+	searchForm.email = ''
+	searchForm.phone = ''
+	searchForm.is_active = null
+	fetchCustomers()
+}
+//modal
 const showCreateModal = ref(false)
 const modalMode = ref<'create' | 'edit' | 'view'>('create')
-const handleCloseCreateModal = () => {
-	showCreateModal.value = false
-	resetCreateForm()
-}
 const handleOpenCreateModal = () => {
 	modalMode.value = 'create'
 	resetCreateForm()
 	showCreateModal.value = true
 }
-// gọi thêm api
-const fetchUnitOptions = async () => {
-	try {
-		const res = await getUnitList({
-			is_option: 1,
-		})
-		unitOptions.value = res.data.data
-	} catch (error) {
-		console.error(error)
-	}
+const handleCloseCreateModal = () => {
+	showCreateModal.value = false
+	resetCreateForm()
 }
 
-const fetchCategoryOptions = async () => {
-	try {
-		const res = await getCategoryList({
-			is_option: 1,
-		})
-		categoryOptions.value = res.data.data
-	} catch (error) {
-		console.error(error)
-	}
-}
-
-const fetchProducts = async () => {
+//function
+const fetchCustomers = async () => {
 	try {
 		loading.value = true
-		const res = await getProductList({
+		const res = await getCustomerList({
 			page: pagination.page,
 			per_page: pagination.pageSize,
 			name: searchForm.name,
+			phone: searchForm.phone,
+			email: searchForm.email,
 			is_active:
 				searchForm.is_active === null || searchForm.is_active === undefined
 					? undefined
@@ -151,11 +124,9 @@ const fetchProducts = async () => {
 						: 0,
 		})
 		const responseData = res.data.data
-		products.value = responseData.items.map((item: any) => ({
+		customers.value = responseData.items.map((item: any) => ({
 			...item,
 			is_active: item.is_active ? 'hoạt động' : 'Ngừng hoạt động',
-			unit_name: item.unit?.name,
-			category_name: item.category?.name,
 		}))
 		pagination.page = responseData.current_page
 		pagination.pageSize = responseData.per_page
@@ -166,20 +137,17 @@ const fetchProducts = async () => {
 		loading.value = false
 	}
 }
-
-const handleViewProduct = async (id: number) => {
+const handleViewCustomer = async (id: number) => {
 	try {
-		const res = await showProductApi(id)
-		const product = res.data.data
-		form.id = product.id
-		form.name = product.name
-		form.description = product.description
-		form.sku = product.sku
-		form.is_active = Boolean(product.is_active)
-		form.unit_id = Number(product.unit_id)
-		form.category_id = Number(product.category_id)
-		form.category_name = product.category?.name
-		form.unit_name = product.unit?.name
+		const res = await showCustomerApi(id)
+		const customer = res.data.data
+		form.id = customer.id
+		form.name = customer.name
+		form.phone = customer.phone
+		form.email = customer.email
+		form.address = customer.address
+		form.note = customer.note
+		form.is_active = Boolean(customer.is_active)
 		showCreateModal.value = true
 	} catch (error) {
 		console.error(error)
@@ -190,25 +158,23 @@ const handleSubmit = async () => {
 		loading.value = true
 		const payload = {
 			name: form.name,
-			description: form.description,
 			is_active: form.is_active,
-			unit_id: form.unit_id,
-			category_id: form.category_id,
-		}
-		if (modalMode.value === 'crate'){
-			payload.sku = form.sku
+			email: form.email,
+			phone: form.phone,
+			note: form.note,
+			address: form.address,
 		}
 		if (!form.id) {
 			//create
-			await createProductApi(payload)
-			ElMessage.success('Tạo sản phẩm thành công')
+			await createCustomerApi(payload)
+			ElMessage.success('Tạo khách hàng thành công')
 		} else {
-			//update
-			await updateProductApi(form.id, payload)
-			ElMessage.success('Cập nhật sản phẩm thành công')
+			//edit
+			await updateCustomerApi(form.id, payload)
+			ElMessage.success('Cập khách hàng thành công')
 		}
 		handleCloseCreateModal()
-		await fetchProducts()
+		await fetchCustomers()
 	} catch (error) {
 		console.error(error)
 	} finally {
@@ -219,7 +185,7 @@ const handleSubmit = async () => {
 onMounted(async () => {
 	try {
 		loading.value = true
-		await Promise.all([fetchProducts(), fetchUnitOptions(), fetchCategoryOptions()])
+		await Promise.all([fetchCustomers()])
 	} catch (error) {
 		console.error(error)
 	} finally {
@@ -236,6 +202,20 @@ onMounted(async () => {
 						<el-form-item label="Tên" class="search-form__item">
 							<el-input v-model="searchForm.name" placeholder="Nhập tên" clearable />
 						</el-form-item>
+						<el-form-item label="Số điện thoại" class="search-form__item">
+							<el-input
+								v-model="searchForm.phone"
+								placeholder="Nhập số điện thoại"
+								clearable
+							/>
+						</el-form-item>
+						<el-form-item label="Email" class="search-form__item">
+							<el-input
+								v-model="searchForm.email"
+								placeholder="Nhập email"
+								clearable
+							/>
+						</el-form-item>
 
 						<el-form-item
 							label="Trạng thái"
@@ -249,7 +229,9 @@ onMounted(async () => {
 								<el-option label="Hoạt động" :value="true" />
 								<el-option label="Ngừng hoạt động" :value="false" />
 							</el-select>
+
 						</el-form-item>
+
 					</el-form>
 				</div>
 
@@ -270,7 +252,7 @@ onMounted(async () => {
 			</div>
 		</div>
 		<AppTable
-			:data="products"
+			:data="customers"
 			:columns="columns"
 			:loading="loading"
 			:pagination="pagination"
@@ -281,10 +263,10 @@ onMounted(async () => {
 			v-model="showCreateModal"
 			:title="
 				modalMode === 'create'
-					? 'Tạo mới kho'
+					? 'Tạo mới khách hàng'
 					: modalMode === 'edit'
-						? 'Cập nhật kho'
-						: 'Chi tiết kho'
+						? 'Cập nhật khách hàng'
+						: 'Chi tiết khách hàng'
 			"
 			@close="handleCloseCreateModal"
 			@confirm="handleSubmit"
@@ -296,17 +278,17 @@ onMounted(async () => {
 					</el-form-item>
 
 					<el-form-item label="Mô tả">
-						<span class="unit-text">{{ form?.description }}</span>
+						<span class="unit-text">{{ form?.phone }}</span>
 					</el-form-item>
-
-					<el-form-item label="Đơn vị">
-						<span class="unit-text">{{ form?.unit_name }}</span>
+					<el-form-item label="Mô tả">
+						<span class="unit-text">{{ form?.email }}</span>
 					</el-form-item>
-
-					<el-form-item label="Nhóm sản pẩm">
-						<span class="unit-text">{{ form?.category_name }}</span>
+					<el-form-item label="Mô tả">
+						<span class="unit-text">{{ form?.address }}</span>
 					</el-form-item>
-
+					<el-form-item label="Mô tả">
+						<span class="unit-text">{{ form?.note }}</span>
+					</el-form-item>
 					<el-form-item label="Trạng thái">
 						<el-tag :type="form?.is_active == true ? 'success' : 'info'">
 							{{ form?.is_active == true ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
@@ -320,45 +302,21 @@ onMounted(async () => {
 					<el-form-item v-show="false" label="ID">
 						<el-input v-model="form.id" autocomplete="off" />
 					</el-form-item>
-
 					<el-form-item label="Tên">
 						<el-input v-model="form.name" autocomplete="off" />
 					</el-form-item>
-
-					<el-form-item label="Mã sản phẩm(SKU)">
-						<el-input
-							v-model="form.sku"
-							autocomplete="off"
-							:disabled="modalMode === 'edit'"
-						/>
+					<el-form-item label="Số điện thoại">
+						<el-input v-model="form.phone" autocomplete="off" />
 					</el-form-item>
-
-					<el-form-item label="Mô tả">
-						<el-input v-model="form.description" autocomplete="off" />
+					<el-form-item label="Email">
+						<el-input v-model="form.email" autocomplete="off" />
 					</el-form-item>
-
-					<el-form-item label="Đơn vị">
-						<el-select v-model="form.unit_id">
-							<el-option
-								v-for="unit in unitOptions"
-								:key="unit.id"
-								:label="unit.name"
-								:value="unit.id"
-							/>
-						</el-select>
+					<el-form-item label="Địa chỉ">
+						<el-input v-model="form.address" autocomplete="off" />
 					</el-form-item>
-
-					<el-form-item label="Nhóm sản pẩm">
-						<el-select v-model="form.category_id">
-							<el-option
-								v-for="category in categoryOptions"
-								:key="category.id"
-								:label="category.name"
-								:value="category.id"
-							/>
-						</el-select>
+					<el-form-item label="Ghi chú">
+						<el-input v-model="form.note" autocomplete="off" />
 					</el-form-item>
-
 					<el-form-item label="Trạng thái">
 						<el-select
 							v-model="form.is_active"
@@ -369,13 +327,11 @@ onMounted(async () => {
 							<el-option label="Ngừng hoạt động" :value="false" />
 						</el-select>
 					</el-form-item>
-
 					<el-form-item label="Business ID" v-show="false">
 						<el-input v-model="form.business_id" />
 					</el-form-item>
 				</el-form>
 			</template>
-
 			<template v-if="modalMode === 'view'" #footer>
 				<el-button @click="handleCloseCreateModal">Đóng</el-button>
 			</template>

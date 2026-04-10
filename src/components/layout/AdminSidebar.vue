@@ -25,6 +25,8 @@ const route = useRoute()
 			<el-menu-item index="/admin/categories">Danh mục loại phẩm</el-menu-item>
 
 			<el-menu-item index="/admin/products">Danh mục sản phẩm</el-menu-item>
+
+			<el-menu-item index="/admin/customers">Danh mục khách hàng</el-menu-item>
 		</el-sub-menu>
 	</el-menu>
 </template>
