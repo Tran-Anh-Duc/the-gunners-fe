@@ -273,7 +273,7 @@ onMounted(() => {
       @confirm="handleSubmit"
     >
       <template v-if="modalMode === 'view'">
-        <el-form label-width="180px">
+        <el-form label-width="180px" :label-position="'left'">
           <el-form-item v-show="false" label="ID">
             <span>{{ form?.id }}</span>
           </el-form-item>

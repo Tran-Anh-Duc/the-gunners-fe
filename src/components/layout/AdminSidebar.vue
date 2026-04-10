@@ -5,17 +5,12 @@ const route = useRoute()
 const emit = defineEmits(['close'])
 
 const handleClick = () => {
-  emit('close')
+	emit('close')
 }
 </script>
 
 <template>
-	<el-menu
-		:default-active="route.path"
-		class="sidebar-menu"
-		router
-		@select="handleClick"
-	>
+	<el-menu :default-active="route.path" class="sidebar-menu" router @select="handleClick">
 		<el-menu-item index="/admin">Dashboard</el-menu-item>
 
 		<!-- Users -->
@@ -40,17 +35,22 @@ const handleClick = () => {
 
 			<el-menu-item index="/admin/suppliers">Danh mục khách hàng (nhập)</el-menu-item>
 		</el-sub-menu>
+		<!-- List order -->
+		<el-sub-menu index="orders">
+			<template #title>Quản lý đơn hàng</template>
+			<el-menu-item index="/admin/orders">Danh sách đơn hàng</el-menu-item>
+		</el-sub-menu>
 	</el-menu>
 </template>
 <style scoped>
 .sidebar-menu {
-  height: 100%;
-  overflow-y: auto;
+	height: 100%;
+	overflow-y: auto;
 }
 
 .el-menu-item,
 .el-sub-menu__title {
-  white-space: normal;
-  line-height: 1.4;
+	white-space: normal;
+	line-height: 1.4;
 }
 </style>
