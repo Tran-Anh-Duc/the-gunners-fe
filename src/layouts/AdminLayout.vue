@@ -27,7 +27,7 @@ onBeforeUnmount(() => {
 
 <template>
   <el-container class="layout-container">
-    <el-aside v-if="!isMobile" width="220px" class="layout-aside">
+    <el-aside v-if="!isMobile" width="240px" class="layout-aside">
       <AdminSidebar />
     </el-aside>
 
@@ -48,7 +48,7 @@ onBeforeUnmount(() => {
     size="220px"
     :with-header="false"
   >
-    <AdminSidebar />
+    <AdminSidebar @close="drawer = false" />
   </el-drawer>
 </template>
 
@@ -72,5 +72,9 @@ onBeforeUnmount(() => {
 .layout-main {
   background: #f5f7fa;
   padding: 20px;
+}
+:deep(.el-drawer__body) {
+  padding: 0;
+  overflow-y: auto;
 }
 </style>

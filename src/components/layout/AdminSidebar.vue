@@ -2,10 +2,20 @@
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
+const emit = defineEmits(['close'])
+
+const handleClick = () => {
+  emit('close')
+}
 </script>
 
 <template>
-	<el-menu :default-active="route.path" class="sidebar-menu" router>
+	<el-menu
+		:default-active="route.path"
+		class="sidebar-menu"
+		router
+		@select="handleClick"
+	>
 		<el-menu-item index="/admin">Dashboard</el-menu-item>
 
 		<!-- Users -->
@@ -26,7 +36,21 @@ const route = useRoute()
 
 			<el-menu-item index="/admin/products">Danh mục sản phẩm</el-menu-item>
 
-			<el-menu-item index="/admin/customers">Danh mục khách hàng</el-menu-item>
+			<el-menu-item index="/admin/customers">Danh mục khách hàng (nhận)</el-menu-item>
+
+			<el-menu-item index="/admin/suppliers">Danh mục khách hàng (nhập)</el-menu-item>
 		</el-sub-menu>
 	</el-menu>
 </template>
+<style scoped>
+.sidebar-menu {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.el-menu-item,
+.el-sub-menu__title {
+  white-space: normal;
+  line-height: 1.4;
+}
+</style>
