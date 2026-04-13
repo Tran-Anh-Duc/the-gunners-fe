@@ -36,9 +36,9 @@ const handleClick = () => {
 			<el-menu-item index="/admin/suppliers">Danh mục khách hàng (nhập)</el-menu-item>
 		</el-sub-menu>
 		<!-- List order -->
-		<el-sub-menu index="orders">
-			<template #title>Quản lý đơn hàng</template>
-			<el-menu-item index="/admin/orders">Danh sách đơn hàng</el-menu-item>
+		<el-sub-menu index="warehouse-documents">
+			<template #title>Phiếu kho</template>
+			<el-menu-item index="/admin/warehouse-documents">Danh sách phiếu(Nhập/xuất)</el-menu-item>
 		</el-sub-menu>
 	</el-menu>
 </template>

@@ -12,6 +12,7 @@ import CategoryListView from '@/views/admin/Categories/CategoryListView.vue'
 import ProductListView from '@/views/admin/Products/ProductListView.vue'
 import CustomerListView from '@/views/admin/Customers/CustomerListView.vue'
 import SupplierListView from '@/views/admin/Suppliers/SupplierListView.vue'
+import WarehouseDocumentView from '@/views/admin/WarehouseDocuments/WarehouseDocumentView.vue'
 
 const routes: AppRoutes = [
 	{
@@ -99,6 +100,14 @@ const routes: AppRoutes = [
 				component: SupplierListView,
 				meta: {
 					title: 'Suppliers',
+				},
+			},
+			{
+				path: 'warehouse-documents',
+				name: 'admin.warehouse_documents',
+				component: WarehouseDocumentView,
+				meta: {
+					title: 'warehouse-documents',
 				},
 			},
 		],
