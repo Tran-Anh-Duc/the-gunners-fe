@@ -10,6 +10,7 @@ export interface ProductListParams {
 	is_active?: boolean
 	category_id?: number
 	unit_id?: number
+	is_option?: boolean | number1
 }
 
 export interface Product {

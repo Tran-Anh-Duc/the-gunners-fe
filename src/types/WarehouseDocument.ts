@@ -100,6 +100,8 @@ export interface WarehouseDocumentFormDetail {
 	tax_price: number
 	total_price: number
 	note: string | null
+	product_options: any[]
+	product_loading: boolean
 }
 
 export interface WarehouseDocumentFormRequest {

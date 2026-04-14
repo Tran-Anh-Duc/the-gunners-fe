@@ -12,6 +12,7 @@ import type {
 } from '@/types/WarehouseDocument.ts'
 import type { Pagination } from '@/types/pagination.ts'
 import { getWarehouseDocumentList, showWarehouseDocumentApi } from '@/api/warehouseDocument.api.ts'
+import { getProductList } from '@/api/product.api.ts'
 
 const isMobile = ref(false)
 
@@ -51,6 +52,8 @@ const createDefaultWarehouseDocumentDetail = (): WarehouseDocumentFormDetail => 
 	tax_price: 0,
 	total_price: 0,
 	note: null,
+	product_options: [],
+	product_loading: false
 })
 const createDefaultWarehouseDocumentForm = (): WarehouseDocumentFormRequest => ({
 	business_id: 1,
@@ -133,7 +136,7 @@ const formatMoney = (value: number | string | null | undefined): string => {
 	return new Intl.NumberFormat('vi-VN').format(number)
 }
 const handleAddDetailRow = () => {
-	form.details.push(createDefaultWarehouseDocumentDetail())
+	form.details.push({ ...createDefaultWarehouseDocumentDetail() })
 }
 const handleRemoveDetailRow = (index: number) => {
 	form.details.splice(index, 1)
@@ -224,6 +227,41 @@ const handleSubmit = async () => {
 		console.error(error)
 	}
 }
+
+//getProductList
+const handleSearchProduct  = async (name: string, row: any) => {
+	if (!name || !name.trim()) {
+		row.product_options = []
+		return
+	}
+	try {
+		row.product_loading = true
+
+		const res = await getProductList({
+			name,
+			is_option: 1,
+		})
+		row.product_options = res.data.data.items || []
+		console.log(row.product_options)
+	}catch (error) {
+		console.error(error)
+	}finally {
+		row.product_loading = false
+	}
+}
+const handleSelectProduct = (productId: number, row: any) => {
+	const product = row.product_options.find((item: any) => item.id === productId)
+
+	if (!product) return
+
+	row.product_id = product.id
+	row.product_name = product.name
+	row.unit_id = product.unit?.id ?? null
+	row.unit_name = product.unit?.name ?? ''
+	row.unit_price = Number(product.sale_price || 0)
+}
+
+
 
 onMounted(async () => {
 	try {
@@ -657,10 +695,21 @@ onUnmounted(() => {
 								<template #default="{ row }">
 									<el-select
 										v-model="row.product_id"
+										filterable
+										remote
+										clearable
+										:remote-method="query => handleSearchProduct(query, row)"
+										:loading="row.product_loading"
+										@change="value => handleSelectProduct(value, row)"
 										placeholder="Chọn sản phẩm"
 										style="width: 100%"
 									>
-										<!-- options -->
+										<el-option
+											v-for="item in row.product_options"
+											:key="item.id"
+											:label="`${item.sku} - ${item.name}`"
+											:value="item.id"
+										/>
 									</el-select>
 								</template>
 							</el-table-column>
