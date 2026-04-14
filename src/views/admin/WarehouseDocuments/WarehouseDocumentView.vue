@@ -12,6 +12,7 @@ import type {
 } from '@/types/WarehouseDocument.ts'
 import type { Pagination } from '@/types/pagination.ts'
 import { getWarehouseDocumentList, showWarehouseDocumentApi } from '@/api/warehouseDocument.api.ts'
+
 const isMobile = ref(false)
 
 const checkMobile = () => {
@@ -122,6 +123,22 @@ const handleCloseCreateModal = () => {
 	showDrawer.value = false
 	resetCreateForm()
 }
+const formatMoney = (value: number | string | null | undefined): string => {
+	if (value === null || value === undefined || value === '') return '0'
+
+	const number = Number(value)
+
+	if (isNaN(number)) return '0'
+
+	return new Intl.NumberFormat('vi-VN').format(number)
+}
+const handleAddDetailRow = () => {
+	form.details.push(createDefaultWarehouseDocumentDetail())
+}
+const handleRemoveDetailRow = (index: number) => {
+	form.details.splice(index, 1)
+}
+
 
 //function
 const fetchWarehouseDocuments = async () => {
@@ -160,13 +177,17 @@ const mapWarehouseDocumentToForm = (data: WarehouseDocument): WarehouseDocumentF
 			data.status === 'draft' || data.status === 'confirmed' || data.status === 'cancelled'
 				? data.status
 				: 'draft',
-
 		reference_code: data.reference_code ?? null,
 		note: data.note ?? null,
-
+		approver_name: data.approver.name ?? null,
 		approved_by: data.approver?.id ?? null,
 		approved_at: data.approved_at ?? null,
-
+		creator_name: data.creator.name ?? null,
+		created_at: data.created_at ?? null,
+		updated_at: data.updated_at ?? null,
+		subtotal_amount: data.subtotal_amount ?? 0,
+		tax_amount: data.tax_amount ?? 0,
+		total_amount: data.total_amount ?? 0,
 		details:
 			data.details && data.details.length > 0
 				? data.details.map((item) => ({
@@ -174,15 +195,12 @@ const mapWarehouseDocumentToForm = (data: WarehouseDocument): WarehouseDocumentF
 						product_name: item.product_name ?? '',
 						unit_id: item.unit_id ?? null,
 						unit_name: item.unit_name ?? '',
-
-						// ⚠️ ép string → number
 						quantity: Number(item.quantity ?? 0),
 						unit_price: Number(item.unit_price ?? 0),
 						subtotal: Number(item.subtotal ?? 0),
 						tax_rate: Number(item.tax_rate ?? 0),
 						tax_price: Number(item.tax_price ?? 0),
 						total_price: Number(item.total_price ?? 0),
-
 						note: item.note ?? null,
 					}))
 				: [createDefaultWarehouseDocumentDetail()],
@@ -282,13 +300,13 @@ onUnmounted(() => {
 
 		<el-drawer
 			v-model="showDrawer"
-			:size="isMobile ? '100%' : modalMode === 'view' ? '90%' : '70%'"
+			:size="isMobile ? '100%' : modalMode === 'view' ? '90%' : '90%'"
 			:with-header="true"
 			:destroy-on-close="false"
 			@close="handleCloseCreateModal"
 		>
 			<template #header>
-				<div>
+				<div class="drawer-title">
 					{{
 						modalMode === 'create'
 							? 'Tạo mới phiếu kho'
@@ -339,7 +357,7 @@ onUnmounted(() => {
 										</el-descriptions-item>
 
 										<el-descriptions-item label="Kho">
-											{{ form.warehouse?.name }}
+											{{ form.warehouse_name }}
 										</el-descriptions-item>
 
 										<el-descriptions-item label="Mã tham chiếu">
@@ -355,7 +373,7 @@ onUnmounted(() => {
 
 									<el-descriptions :column="2" border label-width="140px">
 										<el-descriptions-item label="Người tạo">
-											{{ form.creator?.name || '-' }}
+											{{ form.creator_name || '-' }}
 										</el-descriptions-item>
 
 										<el-descriptions-item label="Ngày tạo">
@@ -363,7 +381,7 @@ onUnmounted(() => {
 										</el-descriptions-item>
 
 										<el-descriptions-item label="Người duyệt">
-											{{ form.approver?.name || '-' }}
+											{{ form.approver_name || '-' }}
 										</el-descriptions-item>
 
 										<el-descriptions-item label="Ngày duyệt">
@@ -371,7 +389,7 @@ onUnmounted(() => {
 										</el-descriptions-item>
 
 										<el-descriptions-item label="Người cập nhật">
-											{{ form.updater?.name || '-' }}
+											{{ form.approver_name || '-' }}
 										</el-descriptions-item>
 
 										<el-descriptions-item label="Ngày cập nhật">
@@ -382,12 +400,339 @@ onUnmounted(() => {
 							</el-col>
 						</el-row>
 					</div>
+					<div>
+						<el-card class="detail-table-card">
+							<el-table :data="form?.details ?? []" border style="width: 100%">
+								<el-table-column
+									prop="product_name"
+									label="Sản phẩm"
+									align="left"
+								/>
+								<el-table-column
+									prop="unit_name"
+									label="Đơn vị"
+									width="100"
+									align="left"
+								/>
+								<el-table-column
+									prop="quantity"
+									label="SL"
+									width="80"
+									align="right"
+								/>
+
+								<el-table-column label="Đơn giá" align="right">
+									<template #default="{ row }">
+										{{ formatMoney(row.unit_price) }}
+									</template>
+								</el-table-column>
+
+								<el-table-column label="Thành tiền" align="right">
+									<template #default="{ row }">
+										{{ formatMoney(row.subtotal) }}
+									</template>
+								</el-table-column>
+
+								<el-table-column
+									prop="tax_rate"
+									label="Thuế (%)"
+									width="100"
+									align="right"
+								/>
+
+								<el-table-column label="Tiền thuế" align="right">
+									<template #default="{ row }">
+										{{ formatMoney(row.tax_price) }}
+									</template>
+								</el-table-column>
+
+								<el-table-column label="Tổng tiền" align="right">
+									<template #default="{ row }">
+										{{ formatMoney(row.total_price) }}
+									</template>
+								</el-table-column>
+							</el-table>
+						</el-card>
+					</div>
+					<div class="document-footer">
+						<!-- LEFT: NOTE -->
+						<div class="document-note">
+							<div class="document-note__title">Ghi chú</div>
+							<div class="document-note__content">
+								{{ form?.note || 'Không có ghi chú' }}
+							</div>
+						</div>
+
+						<!-- RIGHT: SUMMARY -->
+						<div class="document-summary">
+							<div class="document-summary__row">
+								<span>Tổng tiền hàng</span>
+								<strong>{{ formatMoney(form?.subtotal_amount) }}</strong>
+							</div>
+							<div class="document-summary__row">
+								<span>Tổng thuế</span>
+								<strong>{{ formatMoney(form?.tax_amount) }}</strong>
+							</div>
+							<div class="document-summary__row document-summary__row--total">
+								<span>Thành tiền</span>
+								<strong>{{ formatMoney(form?.total_amount) }}</strong>
+							</div>
+						</div>
+					</div>
 				</template>
 
 				<template v-else>
-					<div class="document-form-modal">
-						<!-- form create / edit ở đây -->
+					<div class="document-overview-form">
+						<el-row :gutter="16">
+							<el-col :xs="24" :sm="24" :md="12">
+								<el-card>
+									<div class="overview-card__title">Thông tin chứng từ</div>
+
+									<el-form
+										:model="form"
+										label-position="top"
+										class="document-form-section"
+									>
+										<el-row :gutter="16">
+											<el-col :span="12">
+												<el-form-item label="Mã chứng từ">
+													<el-input
+														v-model="form.document_code"
+														placeholder="Nhập mã chứng từ"
+													/>
+												</el-form-item>
+											</el-col>
+
+											<el-col :span="12">
+												<el-form-item label="Loại">
+													<el-select
+														v-model="form.document_type"
+														placeholder="Chọn loại phiếu"
+														style="width: 100%"
+													>
+														<el-option
+															label="Xuất kho"
+															value="export"
+														/>
+														<el-option
+															label="Nhập kho"
+															value="import"
+														/>
+													</el-select>
+												</el-form-item>
+											</el-col>
+
+											<el-col :span="12">
+												<el-form-item label="Ngày chứng từ">
+													<el-date-picker
+														v-model="form.document_date"
+														type="datetime"
+														placeholder="Chọn ngày chứng từ"
+														style="width: 100%"
+													/>
+												</el-form-item>
+											</el-col>
+
+											<el-col :span="12">
+												<el-form-item label="Kho">
+													<el-select
+														v-model="form.warehouse_id"
+														placeholder="Chọn kho"
+														style="width: 100%"
+													>
+														<!-- ví dụ -->
+														<!--
+														<el-option
+														  v-for="item in warehouseOptions"
+														  :key="item.id"
+														  :label="item.name"
+														  :value="item.id"
+														/>
+														-->
+													</el-select>
+												</el-form-item>
+											</el-col>
+
+											<el-col :span="12">
+												<el-form-item label="Mã tham chiếu">
+													<el-input
+														v-model="form.reference_code"
+														placeholder="Nhập mã tham chiếu"
+													/>
+												</el-form-item>
+											</el-col>
+											<el-col :span="12">
+												<el-form-item label="Trạng thái">
+													<el-select
+														v-model="form.status"
+														style="width: 100%"
+													>
+														<el-option label="Nháp" value="draft" />
+														<el-option
+															label="Đã xác nhận"
+															value="confirmed"
+														/>
+														<el-option
+															label="Đã hủy"
+															value="cancelled"
+														/>
+													</el-select>
+												</el-form-item>
+											</el-col>
+										</el-row>
+									</el-form>
+								</el-card>
+							</el-col>
+
+							<el-col :xs="24" :sm="24" :md="12">
+								<el-card>
+									<div class="overview-card__title">Thông tin xử lý</div>
+
+									<el-form
+										:model="form"
+										label-position="top"
+										class="document-form-section"
+									>
+										<el-row :gutter="16">
+											<el-col :span="12">
+												<el-form-item label="Người tạo">
+													<el-input
+														v-model="form.creator_name"
+														readonly
+													/>
+												</el-form-item>
+											</el-col>
+
+											<el-col :span="12">
+												<el-form-item label="Ngày tạo">
+													<el-input v-model="form.created_at" readonly />
+												</el-form-item>
+											</el-col>
+
+											<el-col :span="12">
+												<el-form-item label="Người duyệt">
+													<el-input
+														v-model="form.approver_name"
+														readonly
+													/>
+												</el-form-item>
+											</el-col>
+
+											<el-col :span="12">
+												<el-form-item label="Ngày duyệt">
+													<el-input v-model="form.approved_at" readonly />
+												</el-form-item>
+											</el-col>
+
+											<el-col :span="12">
+												<el-form-item label="Người cập nhật">
+													<el-input
+														v-model="form.updater_name"
+														readonly
+													/>
+												</el-form-item>
+											</el-col>
+
+											<el-col :span="12">
+												<el-form-item label="Ngày cập nhật">
+													<el-input v-model="form.updated_at" readonly />
+												</el-form-item>
+											</el-col>
+										</el-row>
+									</el-form>
+								</el-card>
+							</el-col>
+						</el-row>
 					</div>
+					<el-card class="detail-section">
+						<div class="overview-card__title detail-section__header">
+							<span>Chi tiết sản phẩm</span>
+							<el-button type="primary" plain @click="handleAddDetailRow">
+								+ Thêm dòng
+							</el-button>
+						</div>
+
+						<el-table :data="form.details" border style="width: 100%">
+							<el-table-column label="Sản phẩm" min-width="220">
+								<template #default="{ row }">
+									<el-select
+										v-model="row.product_id"
+										placeholder="Chọn sản phẩm"
+										style="width: 100%"
+									>
+										<!-- options -->
+									</el-select>
+								</template>
+							</el-table-column>
+
+							<el-table-column label="Đơn vị" min-width="140">
+								<template #default="{ row }">
+									<el-input v-model="row.unit_name" readonly />
+								</template>
+							</el-table-column>
+
+							<el-table-column label="SL" width="120" align="right">
+								<template #default="{ row }">
+									<el-input-number
+										v-model="row.quantity"
+										:min="1"
+										style="width: 100%"
+									/>
+								</template>
+							</el-table-column>
+
+							<el-table-column label="Đơn giá" width="150" align="right">
+								<template #default="{ row }">
+									<el-input-number
+										v-model="row.unit_price"
+										:min="0"
+										:precision="2"
+										style="width: 100%"
+									/>
+								</template>
+							</el-table-column>
+
+							<el-table-column label="Thuế (%)" width="120" align="right">
+								<template #default="{ row }">
+									<el-input-number
+										v-model="row.tax_rate"
+										:min="0"
+										:max="100"
+										style="width: 100%"
+									/>
+								</template>
+							</el-table-column>
+
+							<el-table-column label="Thành tiền" width="160" align="right">
+								<template #default="{ row }">
+									{{ formatMoney(row.total_price) }}
+								</template>
+							</el-table-column>
+
+							<el-table-column label="Ghi chú" min-width="180">
+								<template #default="{ row }">
+									<el-input v-model="row.note" placeholder="Nhập ghi chú" />
+								</template>
+							</el-table-column>
+
+							<el-table-column
+								label="Thao tác"
+								width="90"
+								fixed="right"
+								align="center"
+							>
+								<template #default="{ $index }">
+									<el-button
+										type="danger"
+										link
+										@click="handleRemoveDetailRow($index)"
+									>
+										Xóa
+									</el-button>
+								</template>
+							</el-table-column>
+						</el-table>
+					</el-card>
 				</template>
 			</div>
 
@@ -441,7 +786,7 @@ onUnmounted(() => {
 	width: 100%;
 }
 
-.search-form__item :deep(.el-form-item__label) {
+:deep(.search-form__item .el-form-item__label) {
 	padding-bottom: 6px;
 	line-height: 1.2;
 	font-weight: 500;
@@ -459,7 +804,7 @@ onUnmounted(() => {
 	gap: 8px;
 }
 
-.search-box__actions .el-button {
+:deep(.search-box__actions .el-button) {
 	min-width: 110px;
 }
 
@@ -496,7 +841,7 @@ onUnmounted(() => {
 		width: 100%;
 	}
 
-	.search-box__actions .el-button {
+	:deep(.search-box__actions .el-button) {
 		flex: 1;
 		min-width: 0;
 	}
@@ -518,5 +863,101 @@ onUnmounted(() => {
 	padding-left: 8px;
 	margin-bottom: 16px;
 	box-sizing: border-box;
+}
+
+.overview-card__title {
+	margin-bottom: 5px;
+	font-weight: 600;
+}
+
+:deep(.detail-table-card) {
+	margin: 16px 10px 0;
+}
+
+.document-footer {
+	display: flex;
+	gap: 16px;
+	margin-top: 16px;
+}
+
+/* LEFT */
+.document-note {
+	flex: 1;
+	background: #fff;
+	border: 1px solid #ebeef5;
+	border-radius: 8px;
+	padding: 12px 16px;
+	margin-left: 10px;
+}
+
+.document-note__title {
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.document-note__content {
+	color: #606266;
+}
+
+/* RIGHT */
+.document-summary {
+	width: 320px;
+	background: #fff;
+	border: 1px solid #ebeef5;
+	border-radius: 8px;
+	padding: 12px 16px;
+	margin-right: 10px;
+}
+
+.document-summary__row {
+	display: flex;
+	justify-content: space-between;
+	padding: 6px 0;
+}
+
+.document-summary__row--total {
+	font-size: 16px;
+	font-weight: 700;
+	border-top: 1px solid #ebeef5;
+	margin-top: 8px;
+	padding-top: 10px;
+}
+.drawer-title {
+	font-size: 20px;
+	font-weight: 600;
+	color: #1f2d3d; /* đậm hơn 1 chút */
+}
+
+.document-overview-form {
+	overflow-x: hidden;
+	padding: 0 20px;
+	box-sizing: border-box;
+}
+
+.document-form-section :deep(.el-form-item__label) {
+	font-weight: 500;
+	color: #303133;
+}
+
+.document-form-section :deep(.el-form-item) {
+	margin-bottom: 16px;
+}
+
+.document-form-section :deep(.el-form-item__label) {
+	font-weight: 500;
+	color: #303133;
+}
+
+.document-form-section :deep(.el-form-item) {
+	margin-bottom: 16px;
+}
+
+.document-form-section :deep(.el-input.is-disabled .el-input__wrapper),
+.document-form-section :deep(.el-input__wrapper) {
+	box-sizing: border-box;
+}
+
+.document-form-section :deep(input[readonly]) {
+	color: #606266;
 }
 </style>
