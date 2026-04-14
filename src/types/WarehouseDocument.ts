@@ -5,7 +5,7 @@ export interface WarehouseDocumentListParams {
 	sort_by?: string
 	sort_order?: 'asc' | 'desc'
 	document_code?: string
-	document_type?: boolean
+	document_type?: 'import' | 'export' | null
 	warehouse_id?: number
 	document_date_from?: string
 	document_date_to?: string
@@ -87,3 +87,33 @@ export interface WarehouseDocumentListData {
 	total?: number
 	last_page?: number
 }
+
+export interface WarehouseDocumentFormDetail {
+	product_id: number | null
+	product_name: string
+	unit_id: number | null
+	unit_name: string
+	quantity: number
+	unit_price: number
+	subtotal: number
+	tax_rate: number
+	tax_price: number
+	total_price: number
+	note: string | null
+}
+
+export interface WarehouseDocumentFormRequest {
+	business_id: number | null
+	document_code: string
+	document_type: 'import' | 'export' | ''
+	warehouse_id: number | null
+	document_date: string
+	status: 'draft' | 'confirmed' | 'cancelled' | ''
+	reference_code: string | null
+	note: string | null
+	approved_by: number | null
+	approved_at: string | null
+	details: WarehouseDocumentFormDetail[]
+}
+
+

@@ -3,8 +3,13 @@ import AppTable from '@/components/common/AppTable.vue'
 import type { TableColumn } from '@/types/table.ts'
 import { ref, onMounted, reactive, computed, onUnmounted } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
-import { ElMessage } from 'element-plus'
-import type { WarehouseDocument } from '@/types/WarehouseDocument.ts'
+import { ElMessage, ElDescriptions, ElDescriptionsItem } from 'element-plus'
+import type {
+	WarehouseDocument,
+	WarehouseDocumentFormDetail,
+	WarehouseDocumentFormRequest,
+	WarehouseDocumentListParams,
+} from '@/types/WarehouseDocument.ts'
 import type { Pagination } from '@/types/pagination.ts'
 import { getWarehouseDocumentList, showWarehouseDocumentApi } from '@/api/warehouseDocument.api.ts'
 const isMobile = ref(false)
@@ -33,39 +38,48 @@ const columns: TableColumn[] = [
 	},
 ]
 //form
-const getDefaultForm = (): WarehouseDocument => ({
-	id: 0,
-	business_id: 0,
+const createDefaultWarehouseDocumentDetail = (): WarehouseDocumentFormDetail => ({
+	product_id: null,
+	product_name: '',
+	unit_id: null,
+	unit_name: '',
+	quantity: 1,
+	unit_price: 0,
+	subtotal: 0,
+	tax_rate: 0,
+	tax_price: 0,
+	total_price: 0,
+	note: null,
+})
+const createDefaultWarehouseDocumentForm = (): WarehouseDocumentFormRequest => ({
+	business_id: 1,
 	document_code: '',
 	document_type: 'import',
+	warehouse_id: null,
 	document_date: '',
 	status: 'draft',
-	reference_code: '',
-	subtotal_amount: 0,
-	tax_amount: 0,
-	total_amount: 0,
-	note: '',
-	warehouse: null,
-	creator: null,
-	approver: null,
-	approved_at: '',
-	created_at: '',
-	details: [],
+	reference_code: null,
+	note: null,
+	approved_by: null,
+	approved_at: null,
+	details: [createDefaultWarehouseDocumentDetail()],
 })
-const form = ref<WarehouseDocument | null>(null)
+
+const form = reactive<WarehouseDocumentFormRequest>(createDefaultWarehouseDocumentForm())
 const warehouseDocuments = ref<WarehouseDocument[]>([])
 const loading = ref(false)
+const submitLoading = ref(false)
 const pagination = reactive<Pagination>({
 	page: 1,
 	pageSize: 10,
 	total: 0,
 })
-const searchForm = reactive({
+const searchForm = reactive<WarehouseDocumentListParams>({
 	document_code: '',
 	document_type: null,
 })
 const resetCreateForm = () => {
-	form.value = getDefaultForm()
+	Object.assign(form, createDefaultWarehouseDocumentForm())
 }
 const handlePageChange = (page: number) => {
 	pagination.page = page
@@ -73,17 +87,10 @@ const handlePageChange = (page: number) => {
 }
 
 const handleAction = async (payload: { key: string; row: Record<string, any> }) => {
-	if (payload.key === 'edit') {
-		modalMode.value = 'edit'
-		showDrawer.value = true
+	if (payload.key === 'edit' || payload.key === 'view') {
+		modalMode.value = payload.key
 		await getWarehouseDocumentDetail(payload.row.id)
-		return
-	}
-
-	if (payload.key === 'view') {
-		modalMode.value = 'view'
 		showDrawer.value = true
-		await getWarehouseDocumentDetail(payload.row.id)
 		return
 	}
 
@@ -113,7 +120,7 @@ const handleOpenCreateModal = () => {
 }
 const handleCloseCreateModal = () => {
 	showDrawer.value = false
-	form.value = null
+	resetCreateForm()
 }
 
 //function
@@ -137,13 +144,56 @@ const fetchWarehouseDocuments = async () => {
 		loading.value = false
 	}
 }
+const mapWarehouseDocumentToForm = (data: WarehouseDocument): WarehouseDocumentFormRequest => {
+	return {
+		business_id: data.business_id ?? null,
+		document_code: data.document_code ?? '',
+		document_type:
+			data.document_type === 'import' || data.document_type === 'export'
+				? data.document_type
+				: 'import',
 
+		warehouse_id: data.warehouse?.id ?? null,
+		warehouse_name: data.warehouse.name ?? null,
+		document_date: data.document_date ?? '',
+		status:
+			data.status === 'draft' || data.status === 'confirmed' || data.status === 'cancelled'
+				? data.status
+				: 'draft',
+
+		reference_code: data.reference_code ?? null,
+		note: data.note ?? null,
+
+		approved_by: data.approver?.id ?? null,
+		approved_at: data.approved_at ?? null,
+
+		details:
+			data.details && data.details.length > 0
+				? data.details.map((item) => ({
+						product_id: item.product_id ?? null,
+						product_name: item.product_name ?? '',
+						unit_id: item.unit_id ?? null,
+						unit_name: item.unit_name ?? '',
+
+						// ⚠️ ép string → number
+						quantity: Number(item.quantity ?? 0),
+						unit_price: Number(item.unit_price ?? 0),
+						subtotal: Number(item.subtotal ?? 0),
+						tax_rate: Number(item.tax_rate ?? 0),
+						tax_price: Number(item.tax_price ?? 0),
+						total_price: Number(item.total_price ?? 0),
+
+						note: item.note ?? null,
+					}))
+				: [createDefaultWarehouseDocumentDetail()],
+	}
+}
 const getWarehouseDocumentDetail = async (id: number) => {
 	try {
 		const res = await showWarehouseDocumentApi(id)
-		form.value = res.data.data
-		modalMode.value = 'view'
-		showDrawer.value = true
+		const data = res.data.data
+		Object.assign(form, mapWarehouseDocumentToForm(data))
+		console.log(form)
 	} catch (error) {
 		console.error(error)
 	}
@@ -251,13 +301,93 @@ onUnmounted(() => {
 
 			<div v-loading="loading">
 				<template v-if="modalMode === 'view'">
-					<div v-if="form" class="document-detail-modal">
-						<!-- block detail hiện tại giữ gần như nguyên -->
+					<div class="document-overview">
+						<el-row :gutter="0">
+							<el-col :xs="36" :sm="36" :md="12">
+								<el-card>
+									<div class="overview-card__title">Thông tin chứng từ</div>
+
+									<el-descriptions :column="2" border label-width="140px">
+										<el-descriptions-item label="Mã chứng từ">
+											{{ form.document_code }}
+										</el-descriptions-item>
+
+										<el-descriptions-item label="Loại">
+											{{
+												form.document_type === 'export'
+													? 'Xuất kho'
+													: 'Nhập kho'
+											}}
+										</el-descriptions-item>
+
+										<el-descriptions-item label="Ngày chứng từ">
+											{{ form.document_date }}
+										</el-descriptions-item>
+
+										<el-descriptions-item label="Trạng thái">
+											<el-tag
+												:type="
+													form.status === 'confirmed' ? 'success' : 'info'
+												"
+											>
+												{{
+													form.status === 'confirmed'
+														? 'Đã xác nhận'
+														: form.status
+												}}
+											</el-tag>
+										</el-descriptions-item>
+
+										<el-descriptions-item label="Kho">
+											{{ form.warehouse?.name }}
+										</el-descriptions-item>
+
+										<el-descriptions-item label="Mã tham chiếu">
+											{{ form.reference_code || '-' }}
+										</el-descriptions-item>
+									</el-descriptions>
+								</el-card>
+							</el-col>
+
+							<el-col :xs="36" :sm="36" :md="12">
+								<el-card>
+									<div class="overview-card__title">Thông tin xử lý</div>
+
+									<el-descriptions :column="2" border label-width="140px">
+										<el-descriptions-item label="Người tạo">
+											{{ form.creator?.name || '-' }}
+										</el-descriptions-item>
+
+										<el-descriptions-item label="Ngày tạo">
+											{{ form.created_at }}
+										</el-descriptions-item>
+
+										<el-descriptions-item label="Người duyệt">
+											{{ form.approver?.name || '-' }}
+										</el-descriptions-item>
+
+										<el-descriptions-item label="Ngày duyệt">
+											{{ form.approved_at || '-' }}
+										</el-descriptions-item>
+
+										<el-descriptions-item label="Người cập nhật">
+											{{ form.updater?.name || '-' }}
+										</el-descriptions-item>
+
+										<el-descriptions-item label="Ngày cập nhật">
+											{{ form.updated_at || '-' }}
+										</el-descriptions-item>
+									</el-descriptions>
+								</el-card>
+							</el-col>
+						</el-row>
 					</div>
 				</template>
 
 				<template v-else>
-					<div>Form create / edit ở đây</div>
+					<div class="document-form-modal">
+						<!-- form create / edit ở đây -->
+					</div>
 				</template>
 			</div>
 
@@ -265,7 +395,12 @@ onUnmounted(() => {
 				<div class="drawer-footer">
 					<el-button @click="handleCloseCreateModal">Đóng</el-button>
 
-					<el-button v-if="modalMode !== 'view'" type="primary" @click="handleSubmit">
+					<el-button
+						v-if="modalMode !== 'view'"
+						type="primary"
+						:loading="submitLoading"
+						@click="handleSubmit"
+					>
 						{{ modalMode === 'create' ? 'Tạo mới' : 'Cập nhật' }}
 					</el-button>
 				</div>
@@ -371,35 +506,17 @@ onUnmounted(() => {
 	}
 }
 
-.document-detail-modal {
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
-	height: 100%;
-}
-
-.document-detail-modal__header {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 16px;
-}
-
-.document-detail-modal__content {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) 320px;
-	gap: 16px;
-	align-items: start;
-}
-
-.document-detail-modal__main,
-.document-detail-modal__sidebar {
-	min-width: 0;
-}
-
-.drawer-footer {
-	display: flex;
-	justify-content: flex-end;
-	gap: 12px;
+.document-overview {
 	width: 100%;
+	max-width: 100%;
+	overflow-x: hidden;
+	box-sizing: border-box;
+}
+
+:deep(.document-overview .el-col) {
+	padding-right: 8px;
+	padding-left: 8px;
+	margin-bottom: 16px;
+	box-sizing: border-box;
 }
 </style>
