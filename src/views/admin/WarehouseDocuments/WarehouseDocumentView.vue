@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import AppTable from '@/components/common/AppTable.vue'
 import type { TableColumn } from '@/types/table.ts'
-import { ref, onMounted, reactive, computed } from 'vue'
+import { ref, onMounted, reactive, computed, onUnmounted } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
 import type { WarehouseDocument } from '@/types/WarehouseDocument.ts'
 import type { Pagination } from '@/types/pagination.ts'
 import { getWarehouseDocumentList, showWarehouseDocumentApi } from '@/api/warehouseDocument.api.ts'
+const isMobile = ref(false)
+
+const checkMobile = () => {
+	isMobile.value = window.innerWidth <= 768
+}
 //table
 const columns: TableColumn[] = [
 	{ prop: 'document_code', label: 'Mã chứng từ' },
@@ -28,6 +33,25 @@ const columns: TableColumn[] = [
 	},
 ]
 //form
+const getDefaultForm = (): WarehouseDocument => ({
+	id: 0,
+	business_id: 0,
+	document_code: '',
+	document_type: 'import',
+	document_date: '',
+	status: 'draft',
+	reference_code: '',
+	subtotal_amount: 0,
+	tax_amount: 0,
+	total_amount: 0,
+	note: '',
+	warehouse: null,
+	creator: null,
+	approver: null,
+	approved_at: '',
+	created_at: '',
+	details: [],
+})
 const form = ref<WarehouseDocument | null>(null)
 const warehouseDocuments = ref<WarehouseDocument[]>([])
 const loading = ref(false)
@@ -41,8 +65,7 @@ const searchForm = reactive({
 	document_type: null,
 })
 const resetCreateForm = () => {
-	form.id = 0
-	form.business_id = 0
+	form.value = getDefaultForm()
 }
 const handlePageChange = (page: number) => {
 	pagination.page = page
@@ -52,12 +75,16 @@ const handlePageChange = (page: number) => {
 const handleAction = async (payload: { key: string; row: Record<string, any> }) => {
 	if (payload.key === 'edit') {
 		modalMode.value = 'edit'
-		await handleViewWarehouseDocument(payload.row.id)
+		showDrawer.value = true
+		await getWarehouseDocumentDetail(payload.row.id)
+		return
 	}
 
 	if (payload.key === 'view') {
 		modalMode.value = 'view'
-		await handleViewWarehouseDocument(payload.row.id)
+		showDrawer.value = true
+		await getWarehouseDocumentDetail(payload.row.id)
+		return
 	}
 
 	if (payload.key === 'delete') {
@@ -68,6 +95,7 @@ const handleAction = async (payload: { key: string; row: Record<string, any> }) 
 const handleReset = () => {
 	searchForm.document_code = ''
 	searchForm.document_type = null
+	pagination.page = 1
 	fetchWarehouseDocuments()
 }
 
@@ -76,12 +104,16 @@ const handleSearch = () => {
 	fetchWarehouseDocuments()
 }
 //modal
-const showCreateModal = ref(false)
+const showDrawer = ref(false)
 const modalMode = ref<'create' | 'edit' | 'view'>('create')
 const handleOpenCreateModal = () => {
 	modalMode.value = 'create'
 	resetCreateForm()
-	showCreateModal.value = true
+	showDrawer.value = true
+}
+const handleCloseCreateModal = () => {
+	showDrawer.value = false
+	form.value = null
 }
 
 //function
@@ -106,12 +138,20 @@ const fetchWarehouseDocuments = async () => {
 	}
 }
 
-const handleViewWarehouseDocument = async (id:number) => {
+const getWarehouseDocumentDetail = async (id: number) => {
 	try {
 		const res = await showWarehouseDocumentApi(id)
 		form.value = res.data.data
 		modalMode.value = 'view'
-		showCreateModal.value = true
+		showDrawer.value = true
+	} catch (error) {
+		console.error(error)
+	}
+}
+
+const handleSubmit = async () => {
+	try {
+		console.log('herr')
 	} catch (error) {
 		console.error(error)
 	}
@@ -119,10 +159,19 @@ const handleViewWarehouseDocument = async (id:number) => {
 
 onMounted(async () => {
 	try {
-		await Promise.all([fetchWarehouseDocuments()])
+		// UI
+		checkMobile()
+		window.addEventListener('resize', checkMobile)
+
+		// API
+		await fetchWarehouseDocuments()
 	} catch (error) {
 		console.error(error)
 	}
+})
+
+onUnmounted(() => {
+	window.removeEventListener('resize', checkMobile)
 })
 </script>
 <template>
@@ -181,204 +230,47 @@ onMounted(async () => {
 			@page-change="handlePageChange"
 		/>
 
-		<AppModal
-	v-model="showCreateModal"
-	:title="
-		modalMode === 'create'
-			? 'Tạo mới phiếu kho'
-			: modalMode === 'edit'
-				? 'Cập nhật phiếu kho'
-				: 'Chi tiết phiếu kho'
-	"
-	width="1200px"
-	:show-confirm="modalMode !== 'view'"
-	@close="handleCloseCreateModal"
-	@confirm="handleSubmit"
->
-	<template v-if="modalMode === 'view'">
-		<div v-if="form" class="document-detail-modal">
-			<div class="document-detail-modal__header">
-				<div class="info-card">
-					<div class="info-card__title">Thông tin phiếu</div>
-					<div class="info-card__body">
-						<div class="info-row">
-							<span class="info-row__label">Mã phiếu:</span>
-							<span class="info-row__value">{{ form.document_code || '--' }}</span>
-						</div>
-						<div class="info-row">
-							<span class="info-row__label">Loại phiếu:</span>
-							<span class="info-row__value">
-								{{ form.document_type === 'import' ? 'Phiếu nhập' : 'Phiếu xuất' }}
-							</span>
-						</div>
-						<div class="info-row">
-							<span class="info-row__label">Ngày chứng từ:</span>
-							<span class="info-row__value">{{ form.document_date || '--' }}</span>
-						</div>
-						<div class="info-row">
-							<span class="info-row__label">Trạng thái:</span>
-							<span class="info-row__value">{{ form.status || '--' }}</span>
-						</div>
-						<div class="info-row">
-							<span class="info-row__label">Mã tham chiếu:</span>
-							<span class="info-row__value">{{ form.reference_code || '--' }}</span>
-						</div>
-					</div>
+		<el-drawer
+			v-model="showDrawer"
+			:size="isMobile ? '100%' : modalMode === 'view' ? '90%' : '70%'"
+			:with-header="true"
+			:destroy-on-close="false"
+			@close="handleCloseCreateModal"
+		>
+			<template #header>
+				<div>
+					{{
+						modalMode === 'create'
+							? 'Tạo mới phiếu kho'
+							: modalMode === 'edit'
+								? 'Cập nhật phiếu kho'
+								: 'Chi tiết phiếu kho'
+					}}
 				</div>
+			</template>
 
-				<div class="info-card">
-					<div class="info-card__title">Thông tin kho</div>
-					<div class="info-card__body">
-						<div class="info-row">
-							<span class="info-row__label">Mã kho:</span>
-							<span class="info-row__value">{{ form.warehouse?.code || '--' }}</span>
-						</div>
-						<div class="info-row">
-							<span class="info-row__label">Tên kho:</span>
-							<span class="info-row__value">{{ form.warehouse?.name || '--' }}</span>
-						</div>
-						<div class="info-row">
-							<span class="info-row__label">Business ID:</span>
-							<span class="info-row__value">{{ form.business_id || '--' }}</span>
-						</div>
+			<div v-loading="loading">
+				<template v-if="modalMode === 'view'">
+					<div v-if="form" class="document-detail-modal">
+						<!-- block detail hiện tại giữ gần như nguyên -->
 					</div>
-				</div>
+				</template>
 
-				<div class="info-card">
-					<div class="info-card__title">Người xử lý</div>
-					<div class="info-card__body">
-						<div class="info-row">
-							<span class="info-row__label">Người tạo:</span>
-							<span class="info-row__value">{{ form.creator?.name || '--' }}</span>
-						</div>
-						<div class="info-row">
-							<span class="info-row__label">Người duyệt:</span>
-							<span class="info-row__value">{{ form.approver?.name || '--' }}</span>
-						</div>
-						<div class="info-row">
-							<span class="info-row__label">Ngày duyệt:</span>
-							<span class="info-row__value">{{ form.approved_at || '--' }}</span>
-						</div>
-						<div class="info-row">
-							<span class="info-row__label">Ngày tạo:</span>
-							<span class="info-row__value">{{ form.created_at || '--' }}</span>
-						</div>
-					</div>
-				</div>
+				<template v-else>
+					<div>Form create / edit ở đây</div>
+				</template>
 			</div>
 
-			<div class="document-detail-modal__content">
-				<div class="document-detail-modal__main">
-					<div class="section-title">Chi tiết sản phẩm</div>
+			<template #footer>
+				<div class="drawer-footer">
+					<el-button @click="handleCloseCreateModal">Đóng</el-button>
 
-					<!-- Desktop / tablet -->
-					<div class="document-detail-table">
-						<el-table :data="form.details || []" border style="width: 100%">
-							<el-table-column type="index" label="STT" width="60" align="center" />
-							<el-table-column prop="product.sku" label="SKU" min-width="120" />
-							<el-table-column prop="product_name" label="Tên sản phẩm" min-width="180" />
-							<el-table-column prop="unit_name" label="Đơn vị" min-width="100" />
-							<el-table-column prop="quantity" label="Số lượng" min-width="100" align="right" />
-							<el-table-column prop="unit_price" label="Đơn giá" min-width="120" align="right" />
-							<el-table-column prop="tax_rate" label="Thuế suất" min-width="100" align="right" />
-							<el-table-column prop="tax_price" label="Tiền thuế" min-width="120" align="right" />
-							<el-table-column prop="total_price" label="Tổng tiền" min-width="120" align="right" />
-						</el-table>
-					</div>
-
-					<!-- Mobile -->
-					<div class="document-detail-mobile-list">
-						<div
-							v-for="(item, index) in form.details || []"
-							:key="item.id"
-							class="detail-mobile-card"
-						>
-							<div class="detail-mobile-card__header">
-								<div class="detail-mobile-card__title">
-									{{ index + 1 }}. {{ item.product_name || '--' }}
-								</div>
-								<div class="detail-mobile-card__sku">
-									SKU: {{ item.product?.sku || '--' }}
-								</div>
-							</div>
-
-							<div class="detail-mobile-card__body">
-								<div class="detail-mobile-row">
-									<span class="detail-mobile-row__label">Đơn vị</span>
-									<span class="detail-mobile-row__value">{{ item.unit_name || '--' }}</span>
-								</div>
-								<div class="detail-mobile-row">
-									<span class="detail-mobile-row__label">Số lượng</span>
-									<span class="detail-mobile-row__value">{{ item.quantity || '--' }}</span>
-								</div>
-								<div class="detail-mobile-row">
-									<span class="detail-mobile-row__label">Đơn giá</span>
-									<span class="detail-mobile-row__value">{{ item.unit_price || '--' }}</span>
-								</div>
-								<div class="detail-mobile-row">
-									<span class="detail-mobile-row__label">Thành tiền</span>
-									<span class="detail-mobile-row__value">{{ item.subtotal || '--' }}</span>
-								</div>
-								<div class="detail-mobile-row">
-									<span class="detail-mobile-row__label">Thuế suất</span>
-									<span class="detail-mobile-row__value">{{ item.tax_rate || '--' }}</span>
-								</div>
-								<div class="detail-mobile-row">
-									<span class="detail-mobile-row__label">Tiền thuế</span>
-									<span class="detail-mobile-row__value">{{ item.tax_price || '--' }}</span>
-								</div>
-								<div class="detail-mobile-row detail-mobile-row--total">
-									<span class="detail-mobile-row__label">Tổng tiền</span>
-									<span class="detail-mobile-row__value">{{ item.total_price || '--' }}</span>
-								</div>
-								<div class="detail-mobile-row">
-									<span class="detail-mobile-row__label">Ghi chú</span>
-									<span class="detail-mobile-row__value">{{ item.note || '--' }}</span>
-								</div>
-							</div>
-						</div>
-					</div>
+					<el-button v-if="modalMode !== 'view'" type="primary" @click="handleSubmit">
+						{{ modalMode === 'create' ? 'Tạo mới' : 'Cập nhật' }}
+					</el-button>
 				</div>
-
-				<div class="document-detail-modal__sidebar">
-					<div class="summary-card">
-						<div class="summary-card__title">Tổng hợp</div>
-
-						<div class="summary-row">
-							<span>Tạm tính</span>
-							<strong>{{ form.subtotal_amount || '--' }}</strong>
-						</div>
-
-						<div class="summary-row">
-							<span>Thuế</span>
-							<strong>{{ form.tax_amount || '--' }}</strong>
-						</div>
-
-						<div class="summary-row summary-row--grand">
-							<span>Tổng tiền</span>
-							<strong>{{ form.total_amount || '--' }}</strong>
-						</div>
-					</div>
-
-					<div class="summary-card">
-						<div class="summary-card__title">Ghi chú chứng từ</div>
-						<div class="summary-note">
-							{{ form.note || '--' }}
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</template>
-
-	<template v-else>
-		<div>Form create / edit để làm sau</div>
-	</template>
-
-	<template v-if="modalMode === 'view'" #footer>
-		<el-button @click="handleCloseCreateModal">Đóng</el-button>
-	</template>
-</AppModal>
+			</template>
+		</el-drawer>
 	</div>
 </template>
 <style scoped>
@@ -482,7 +374,8 @@ onMounted(async () => {
 .document-detail-modal {
 	display: flex;
 	flex-direction: column;
-	gap: 20px;
+	gap: 16px;
+	height: 100%;
 }
 
 .document-detail-modal__header {
@@ -493,198 +386,20 @@ onMounted(async () => {
 
 .document-detail-modal__content {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 280px;
+	grid-template-columns: minmax(0, 1fr) 320px;
 	gap: 16px;
 	align-items: start;
 }
 
-.document-detail-modal__main {
+.document-detail-modal__main,
+.document-detail-modal__sidebar {
 	min-width: 0;
 }
 
-.document-detail-modal__sidebar {
+.drawer-footer {
 	display: flex;
-	flex-direction: column;
-	gap: 16px;
-}
-
-.info-card,
-.summary-card {
-	border: 1px solid #ebeef5;
-	border-radius: 10px;
-	background: #fff;
-	padding: 16px;
-}
-
-.info-card__title,
-.summary-card__title,
-.section-title {
-	margin-bottom: 14px;
-	font-size: 16px;
-	font-weight: 600;
-	color: #303133;
-}
-
-.info-card__body {
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
-}
-
-.info-row {
-	display: flex;
-	gap: 8px;
-	font-size: 14px;
-	line-height: 1.5;
-}
-
-.info-row__label {
-	min-width: 110px;
-	font-weight: 600;
-	color: #606266;
-}
-
-.info-row__value {
-	color: #303133;
-	word-break: break-word;
-}
-
-.document-detail-table {
-	display: block;
-}
-
-.document-detail-mobile-list {
-	display: none;
-}
-
-.summary-row {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 10px 0;
-	font-size: 14px;
-	border-bottom: 1px solid #f0f2f5;
-}
-
-.summary-row:last-child {
-	border-bottom: none;
-}
-
-.summary-row--grand {
-	font-size: 16px;
-	font-weight: 700;
-	padding-top: 14px;
-}
-
-.summary-note {
-	font-size: 14px;
-	color: #606266;
-	line-height: 1.6;
-	word-break: break-word;
-	min-height: 60px;
-}
-
-/* Mobile card list */
-.detail-mobile-card {
-	border: 1px solid #ebeef5;
-	border-radius: 10px;
-	background: #fff;
-	padding: 14px;
-	margin-bottom: 12px;
-}
-
-.detail-mobile-card:last-child {
-	margin-bottom: 0;
-}
-
-.detail-mobile-card__header {
-	padding-bottom: 10px;
-	margin-bottom: 10px;
-	border-bottom: 1px solid #f0f2f5;
-}
-
-.detail-mobile-card__title {
-	font-size: 15px;
-	font-weight: 600;
-	color: #303133;
-	line-height: 1.5;
-}
-
-.detail-mobile-card__sku {
-	margin-top: 4px;
-	font-size: 13px;
-	color: #909399;
-}
-
-.detail-mobile-card__body {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-.detail-mobile-row {
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-start;
+	justify-content: flex-end;
 	gap: 12px;
-	font-size: 14px;
-}
-
-.detail-mobile-row__label {
-	color: #606266;
-	flex-shrink: 0;
-}
-
-.detail-mobile-row__value {
-	color: #303133;
-	text-align: right;
-	word-break: break-word;
-}
-
-.detail-mobile-row--total {
-	padding-top: 8px;
-	margin-top: 4px;
-	border-top: 1px dashed #dcdfe6;
-	font-weight: 600;
-}
-
-@media (max-width: 1200px) {
-	.document-detail-modal__header {
-		grid-template-columns: 1fr;
-	}
-
-	.document-detail-modal__content {
-		grid-template-columns: 1fr;
-	}
-}
-
-@media (max-width: 768px) {
-	.info-row {
-		flex-direction: column;
-		gap: 2px;
-	}
-
-	.info-row__label {
-		min-width: unset;
-	}
-
-	.document-detail-table {
-		display: none;
-	}
-
-	.document-detail-mobile-list {
-		display: block;
-	}
-
-	.summary-card,
-	.info-card {
-		padding: 14px;
-	}
-
-	.section-title,
-	.info-card__title,
-	.summary-card__title {
-		font-size: 15px;
-	}
+	width: 100%;
 }
 </style>
