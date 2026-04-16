@@ -4,7 +4,7 @@ import type { TableColumn } from '@/types/table.ts'
 import { ref, onMounted, reactive, computed } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
-import type { Warehouse, WarehouseFormRequest } from '@/types/warehouse.ts'
+import type { Warehouse, WarehouseFormRequest,WarehouseFormState } from '@/types/warehouse.ts'
 import {
 	createWarehouseApi,
 	getWarehouseList,
@@ -29,15 +29,15 @@ const columns: TableColumn[] = [
 		],
 	},
 ]
-
-const form = reactive({
+const createDefaultForm = (): WarehouseFormState => ({
 	id: 0,
-	business_id: null as number | null,
-	name: '' | null,
-	code: '' | null,
-	address: '' | null,
-	is_active: true | false,
+	business_id: null,
+	name: '',
+	code: '',
+	address: null,
+	is_active: true,
 })
+const form = reactive<WarehouseFormState>(createDefaultForm())
 
 const warehouses = ref<Warehouse[]>([])
 const loading = ref(false)
@@ -53,12 +53,7 @@ const searchForm = reactive({
 	is_active: null,
 })
 const resetCreateForm = () => {
-	form.id = 0
-	form.business_id = 0
-	form.name = ''
-	form.code = ''
-	form.address = ''
-	form.is_active = true
+	Object.assign(form, createDefaultForm())
 }
 
 const handlePageChange = (page: number) => {
@@ -116,20 +111,20 @@ const fetchWarehouses = async () => {
 			name: searchForm.name,
 			code: searchForm.code,
 			is_active:
-				searchForm.is_active === null || searchForm.is_active === undefined
+				searchForm.is_active === '' ||
+				searchForm.is_active === null ||
+				searchForm.is_active === undefined
 					? undefined
-					: searchForm.is_active
-						? 1
-						: 0,
+					: Number(searchForm.is_active),
 		})
 		const responseData = res.data.data
 		warehouses.value = responseData.items.map((item: any) => ({
 			...item,
 			is_active: item.is_active ? 'hoạt động' : 'Ngừng hoạt động',
 		}))
-		pagination.page = responseData.current_page
-		pagination.pageSize = responseData.per_page
-		pagination.total = responseData.total
+		pagination.page = responseData.current_page ?? 1
+		pagination.pageSize = responseData.per_page ?? 10
+		pagination.total = responseData.total ?? 0
 	} catch (error) {
 		console.error(error)
 	} finally {
@@ -142,9 +137,9 @@ const handleViewWarehouse = async (id: number) => {
 		const res = await showWarehouseApi(id)
 		const warehouse = res.data.data
 		form.id = warehouse.id || 0
-		form.name = warehouse.name || ''
-		form.code = warehouse.code || ''
-		form.address = warehouse.address || ''
+		form.name = warehouse.name ?? ''
+		form.code = warehouse.code ?? ''
+		form.address = warehouse.address ?? null
 		form.is_active = Boolean(warehouse.is_active)
 		showCreateModal.value = true
 	} catch (error) {
@@ -157,7 +152,7 @@ const handleSubmit = async () => {
 		loading.value = true
 		const payload: WarehouseFormRequest = {
 			name: form.name,
-			address: form.address,
+			address: form.address ?? undefined,
 			is_active: form.is_active,
 		}
 		if (!form.id) {
@@ -264,8 +259,8 @@ onMounted(() => {
 					</el-form-item>
 
 					<el-form-item label="Trạng thái">
-						<el-tag :type="form?.is_active == true ? 'success' : 'info'">
-							{{ form?.is_active == true ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
+						<el-tag :type="form.is_active ? 'success' : 'info'">
+							{{ form.is_active ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
 						</el-tag>
 					</el-form-item>
 				</el-form>

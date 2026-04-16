@@ -4,8 +4,7 @@ import type { TableColumn } from '@/types/table.ts'
 import { ref, onMounted, reactive, computed, vShow } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
-import { useAuthStore } from '@/stores/auth.store.ts'
-import type { Unit, UnitFormRequest } from '@/types/unit.ts'
+import type { Unit, UnitFormRequest, UnitFormState } from '@/types/unit.ts'
 import { createUnitApi, getUnitList, showUnitApi, updateUnitApi } from '@/api/unit.api.ts'
 
 const columns: TableColumn[] = [
@@ -24,15 +23,15 @@ const columns: TableColumn[] = [
 		],
 	},
 ]
-
-const form = reactive({
+const createDefaultForm = (): UnitFormState => ({
 	id: 0,
-	business_id: null as number | null,
-	name: '' | null,
-	code: '' | null,
-	description: '' | null,
+	business_id: null,
+	name: '',
+	description: null,
 	is_active: true,
+	code: ''
 })
+const form = reactive<UnitFormState>(createDefaultForm())
 
 const units = ref<Unit[]>([])
 const loading = ref(false)
@@ -89,22 +88,11 @@ const handleOpenCreateModal = () => {
 	showCreateModal.value = true
 }
 const resetCreateForm = () => {
-	form.id = 0
-	form.business_id = 0
-	form.name = ''
-	form.code = ''
-	form.description = ''
-	form.is_active = true
+	Object.assign(form, createDefaultForm())
 }
 
 //lấy thông tin user đang đăng nhập
-const authStore = useAuthStore()
-const currentUserId = computed(() => authStore.user?.id)
-const businessIdCurrent = computed(() => authStore.user?.business_id)
-const businessNameCurrent = computed(() => authStore.user?.business_name)
-const canEditPassword = computed(() => {
-	return modalMode.value === 'create' || form.id === currentUserId.value
-})
+
 
 const fetchUnits = async () => {
 	try {
@@ -120,9 +108,9 @@ const fetchUnits = async () => {
 			...item,
 			is_active: item.is_active ? 'hoạt động' : 'Ngừng hoạt động',
 		}))
-		pagination.page = responseData.current_page
-		pagination.pageSize = responseData.per_page
-		pagination.total = responseData.total
+		pagination.page = responseData.current_page ?? 1
+		pagination.pageSize = responseData.per_page ?? 10
+		pagination.total = responseData.total ?? 0
 	} catch (error) {
 		console.error('lỗi fetchUnits:', error)
 	} finally {
@@ -157,10 +145,10 @@ const handleViewUser = async (id: number) => {
 		const res = await showUnitApi(id)
 		const unit = res.data.data
 		form.id = unit.id || 0
-		form.code = unit.code || ''
-		form.name = unit.name || ''
-		form.description = unit.description || ''
-		form.is_active = unit.is_active
+		form.code = unit.code ?? ''
+		form.name = unit.name ?? ''
+		form.description = unit.description ?? null
+		form.is_active = Boolean(unit.is_active)
 		form.business_id = unit.business_id
 		showCreateModal.value = true
 	} catch (error) {

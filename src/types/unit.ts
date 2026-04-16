@@ -21,7 +21,7 @@ export interface Unit {
 }
 
 export interface UnitFormRequest {
-  code: string
+  code?: string
   name: string
   description?: string | null
   is_active?: boolean
@@ -34,4 +34,12 @@ export interface UnitListData {
   per_page?: number
   total?: number
   last_page?: number
+}
+export interface UnitFormState {
+	id: number
+	business_id: number | null
+	name: string
+	description: string | null
+	is_active: boolean
+	code: string
 }

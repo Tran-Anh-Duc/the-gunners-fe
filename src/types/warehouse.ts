@@ -5,7 +5,7 @@ export interface WarehouseListParams {
 	sort_order?: 'asc' | 'desc'
 	code?: string
 	name?: string
-	is_active?: boolean
+	is_active?: number
 }
 
 export interface Warehouse {
@@ -24,7 +24,7 @@ export interface WarehouseFormRequest {
 	code?: string
 	name?: string
 	address?: string
-	is_active?: string
+	is_active?: boolean
 }
 
 export interface WarehouseListData {
@@ -33,4 +33,12 @@ export interface WarehouseListData {
 	per_page?: number
 	total?: number
 	last_page?: number
+}
+export interface WarehouseFormState {
+	id: number
+	business_id: number | null
+	name: string
+	code: string
+	address: string | null
+	is_active: boolean
 }
