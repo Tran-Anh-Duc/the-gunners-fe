@@ -4,7 +4,7 @@ import type { TableColumn } from '@/types/table.ts'
 import { ref, onMounted, reactive, computed } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
-import type { Category, CategoryFormRequest } from '@/types/category.ts'
+import type { Category, CategoryFormRequest, CategoryFormState } from '@/types/category.ts'
 import {
 	getCategoryList,
 	showCategoryApi,
@@ -29,12 +29,12 @@ const columns: TableColumn[] = [
 	},
 ]
 //form
-const form = reactive({
+const form = reactive<CategoryFormState>({
 	id: 0,
-	business_id: null as number | null,
-	name: '' | null,
-	description: '' | null,
-	is_active: true | false,
+	business_id: null,
+	name: '',
+	description: null,
+	is_active: true,
 })
 const categories = ref<Category[]>([])
 const loading = ref(false)
@@ -105,20 +105,18 @@ const fetchCategories = async () => {
 			per_page: pagination.pageSize,
 			name: searchForm.name,
 			is_active:
-				searchForm.is_active === null || searchForm.is_active === undefined
+				searchForm.is_active === null || searchForm.is_active === '' || searchForm.is_active === undefined
 					? undefined
-					: searchForm.is_active
-						? 1
-						: 0,
+					: Number(searchForm.is_active),
 		})
 		const responseData = res.data.data
 		categories.value = responseData.items.map((item: any) => ({
 			...item,
 			is_active: item.is_active ? 'hoạt động' : 'Ngừng hoạt động',
 		}))
-		pagination.page = responseData.current_page
-		pagination.pageSize = responseData.per_page
-		pagination.total = responseData.total
+		pagination.page = responseData.current_page ?? 1
+		pagination.pageSize = responseData.per_page ?? 10
+		pagination.total = responseData.total ?? 0
 	} catch (error) {
 		console.error(error)
 	} finally {
@@ -144,7 +142,7 @@ const handleSubmit = async () => {
 		loading.value = true
 		const payload: CategoryFormRequest = {
 			name: form.name,
-			description: form.description,
+			description: form.description ?? undefined,
 			is_active: form.is_active,
 		}
 		if (!form.id) {
@@ -240,8 +238,8 @@ onMounted(() => {
 					</el-form-item>
 
 					<el-form-item label="Trạng thái">
-						<el-tag :type="form?.is_active == true ? 'success' : 'info'">
-							{{ form?.is_active == true ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
+						<el-tag :type="form.is_active ? 'success' : 'info'">
+							{{ form.is_active ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
 						</el-tag>
 					</el-form-item>
 				</el-form>

@@ -4,7 +4,7 @@ import type { TableColumn } from '@/types/table.ts'
 import { ref, onMounted, reactive, computed } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
-import type { Supplier, SupplierFormRequest } from '@/types/supplier.ts'
+import type { Supplier, SupplierFormState   } from '@/types/supplier.ts'
 import {
 	getSuppliersList,
 	showSupplierApi,
@@ -34,18 +34,20 @@ const columns: TableColumn[] = [
 	},
 ]
 //form
-const form = reactive({
+const createDefaultForm = (): SupplierFormState => ({
 	id: 0,
-	business_id: null as number | null,
-	name: '' | null,
-	contact_name: '' | null,
-	phone: '' | null,
-	email: '' | null,
-	address: '' | null,
-	note: '' | null,
-	description: '' | null,
-	is_active: true | false,
+	business_id: null,
+	name: '',
+	contact_name: null,
+	phone: null,
+	email: null,
+	address: null,
+	note: null,
+	description: null,
+	is_active: true,
 })
+const form = reactive<SupplierFormState>(createDefaultForm())
+
 const suppliers = ref<Supplier[]>([])
 const loading = ref(false)
 const pagination = reactive<Pagination>({
@@ -63,15 +65,7 @@ const searchForm = reactive({
 	is_active: null,
 })
 const resetCreateForm = () => {
-	form.id = 0
-	form.business_id = 0
-	form.name = ''
-	form.contact_name = ''
-	form.phone = ''
-	form.email = ''
-	form.address = ''
-	form.note = ''
-	form.is_active = true
+	Object.assign(form, createDefaultForm())
 }
 //modal
 const showCreateModal = ref(false)
@@ -129,20 +123,20 @@ const fetchSuppliers = async () => {
 			address: searchForm.address,
 			note: searchForm.note,
 			is_active:
-				searchForm.is_active === null || searchForm.is_active === undefined
+				searchForm.is_active === '' ||
+				searchForm.is_active === null ||
+				searchForm.is_active === undefined
 					? undefined
-					: searchForm.is_active
-						? 1
-						: 0,
+					: Number(searchForm.is_active),
 		})
 		const responseData = res.data.data
 		suppliers.value = responseData.items.map((item: any) => ({
 			...item,
 			is_active: item.is_active ? 'hoạt động' : 'Ngừng hoạt động',
 		}))
-		pagination.page = responseData.current_page
-		pagination.pageSize = responseData.per_page
-		pagination.total = responseData.total
+		pagination.page = responseData.current_page ?? 1
+		pagination.pageSize = responseData.per_page ?? 10
+		pagination.total = responseData.total ?? 0
 	} catch (error) {
 		console.log(error)
 	} finally {
@@ -155,11 +149,11 @@ const handleViewSupplier = async (id: number) => {
 		const suppllier = res.data.data
 		form.id = suppllier.id
 		form.name = suppllier.name
-		form.contact_name = suppllier.contact_name
-		form.phone = suppllier.phone
-		form.email = suppllier.email
-		form.address = suppllier.address
-		form.note = suppllier.note
+		form.contact_name = suppllier.contact_name ?? null
+		form.phone = suppllier.phone ?? null
+		form.email = suppllier.email ?? null
+		form.address = suppllier.address ?? null
+		form.note = suppllier.note ?? null
 		form.is_active = Boolean(suppllier.is_active)
 		showCreateModal.value = true
 	} catch (error) {
@@ -171,11 +165,11 @@ const handleSubmit = async () => {
 		loading.value = true
 		const payload = {
 			name: form.name,
-			contact_name: form.contact_name,
-			phone: form.phone,
-			email: form.email,
-			address: form.address,
-			note: form.note,
+			contact_name: form.contact_name ?? undefined,
+			phone: form.phone ?? undefined,
+			email: form.email ?? undefined,
+			address: form.address ?? undefined,
+			note: form.note ?? undefined,
 			is_active: form.is_active,
 		}
 		if (!form.id) {

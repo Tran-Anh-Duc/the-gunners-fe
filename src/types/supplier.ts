@@ -7,7 +7,9 @@ export interface SupplierListParams {
 	contact_name?: string
 	phone?: string
 	email?: string
-	is_active?: boolean
+	address?: string
+	note?: string
+	is_active?: number
 	is_option?: boolean | number
 }
 export interface Supplier {
@@ -40,5 +42,17 @@ export interface SupplierListData {
 	per_page?: number
 	total?: number
 	last_page?: number
+}
+export interface SupplierFormState {
+	id: number
+	business_id: number | null
+	name: string
+	contact_name: string | null
+	phone: string | null
+	email: string | null
+	address: string | null
+	note: string | null
+	description: string | null
+	is_active: boolean
 }
 

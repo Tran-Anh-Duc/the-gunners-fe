@@ -4,7 +4,7 @@ import type { TableColumn } from '@/types/table.ts'
 import { ref, onMounted, reactive, computed } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
-import type { Customer, CustomerFormRequest } from '@/types/customer.ts'
+import type { Customer,CustomerFormState } from '@/types/customer.ts'
 import {
 	getCustomerList,
 	showCustomerApi,
@@ -39,12 +39,16 @@ const pagination = reactive<Pagination>({
 	pageSize: 10,
 	total: 0,
 })
-const form = reactive({
+const form = reactive<CustomerFormState>({
 	id: 0,
-	business_id: null as number | null,
-	name: '' | null,
-	description: '' | null,
-	is_active: true | false,
+	business_id: null,
+	name: '',
+	description: null,
+	phone: null,
+	email: null,
+	address: null,
+	note: null,
+	is_active: true,
 })
 const searchForm = reactive({
 	name: '',
@@ -117,20 +121,20 @@ const fetchCustomers = async () => {
 			phone: searchForm.phone,
 			email: searchForm.email,
 			is_active:
-				searchForm.is_active === null || searchForm.is_active === undefined
+				searchForm.is_active === '' ||
+				searchForm.is_active === null ||
+				searchForm.is_active === undefined
 					? undefined
-					: searchForm.is_active
-						? 1
-						: 0,
+					: Number(searchForm.is_active),
 		})
 		const responseData = res.data.data
 		customers.value = responseData.items.map((item: any) => ({
 			...item,
 			is_active: item.is_active ? 'hoạt động' : 'Ngừng hoạt động',
 		}))
-		pagination.page = responseData.current_page
-		pagination.pageSize = responseData.per_page
-		pagination.total = responseData.total
+		pagination.page = responseData.current_page ?? 1
+		pagination.pageSize = responseData.per_page ?? 10
+		pagination.total = responseData.total ?? 0
 	} catch (error) {
 		console.error(error)
 	} finally {
@@ -143,10 +147,10 @@ const handleViewCustomer = async (id: number) => {
 		const customer = res.data.data
 		form.id = customer.id
 		form.name = customer.name
-		form.phone = customer.phone
-		form.email = customer.email
-		form.address = customer.address
-		form.note = customer.note
+		form.phone = customer.phone ?? null
+		form.email = customer.email ?? null
+		form.address = customer.address ?? null
+		form.note = customer.note ?? null
 		form.is_active = Boolean(customer.is_active)
 		showCreateModal.value = true
 	} catch (error) {
@@ -159,10 +163,10 @@ const handleSubmit = async () => {
 		const payload = {
 			name: form.name,
 			is_active: form.is_active,
-			email: form.email,
-			phone: form.phone,
-			note: form.note,
-			address: form.address,
+			email: form.email ?? undefined,
+			phone: form.phone ?? undefined,
+			note: form.note ?? undefined,
+			address: form.address ?? undefined,
 		}
 		if (!form.id) {
 			//create

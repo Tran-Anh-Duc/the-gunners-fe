@@ -1,4 +1,4 @@
-interface DataSearch {
+export interface DataSearch {
   name?: string
   email?: string
   phone?: string

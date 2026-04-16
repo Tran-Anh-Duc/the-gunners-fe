@@ -4,7 +4,7 @@ export interface CustomerListParams {
 	sort_by?: string
 	sort_order?: 'asc' | 'desc'
 	name?: string
-	is_active?: boolean
+	is_active?: number
 	is_option?: boolean | number
 	phone?: string
 	email?:string
@@ -36,5 +36,16 @@ export interface CustomerListData {
 	per_page?: number
 	total?: number
 	last_page?: number
+}
+export interface CustomerFormState {
+	id: number
+	business_id: number | null
+	name: string
+	description: string | null
+	phone: string | null
+	email: string | null
+	address: string | null
+	note: string | null
+	is_active: boolean
 }
 
