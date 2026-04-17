@@ -166,7 +166,7 @@ const handleViewUser = async (id: number) => {
     form.membership_status = user.membership_status || ''
     form.is_active = user.is_active
     form.business_id = user.business_id
-    form.avatar = user.avatar
+    form.avatar = user.avatar ?? ''
     form.is_owner = user.is_owner
     showCreateModal.value = true
   } catch (error) {

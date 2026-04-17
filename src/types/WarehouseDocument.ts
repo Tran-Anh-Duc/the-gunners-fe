@@ -115,7 +115,22 @@ export interface WarehouseDocumentFormRequest {
 	note: string | null
 	approved_by: number | null
 	approved_at: string | null
+
+	warehouse_name: string | null
+	creator_name: string | null
+	approver_name: string | null
+	updater_name: string | null
+	created_at: string | null
+	updated_at: string | null
+	subtotal_amount: number
+	tax_amount: number
+	total_amount: number
+
 	details: WarehouseDocumentFormDetail[]
+}
+export interface WarehouseDocumentSearchForm {
+	document_code: string
+	document_type: 'import' | 'export' | null
 }
 
 

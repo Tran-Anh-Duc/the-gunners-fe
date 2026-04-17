@@ -1,3 +1,4 @@
+
 export interface UnitListParams {
 	page?: number
 	per_page?: number
@@ -43,3 +44,8 @@ export interface UnitFormState {
 	is_active: boolean
 	code: string
 }
+export interface UnitOption {
+	id: number
+	name: string
+}
+export type UnitOptionListData  = UnitOption[]

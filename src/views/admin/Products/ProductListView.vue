@@ -4,7 +4,7 @@ import type { TableColumn } from '@/types/table.ts'
 import { ref, onMounted, reactive, computed } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage } from 'element-plus'
-import type { Product, ProductFormRequest } from '@/types/product.ts'
+import type { Product, ProductFormRequest, ProductFormState } from '@/types/product.ts'
 import {
 	createProductApi,
 	getProductList,
@@ -14,6 +14,9 @@ import {
 import type { Pagination } from '@/types/pagination.ts'
 import { getCategoryList } from '@/api/category.api.ts'
 import { getUnitList } from '@/api/unit.api.ts'
+import type { UnitOptionListData } from '@/types/unit'
+import type { CategoryOptionListData } from '@/types/category'
+
 //table
 const columns: TableColumn[] = [
 	{ prop: 'name', label: 'Tên danh mục' },
@@ -35,23 +38,24 @@ const columns: TableColumn[] = [
 ]
 
 //form
-const form = reactive({
+const createDefaultForm = (): ProductFormState => ({
 	id: 0,
-	business_id: null as number | null,
-	name: '' as string | null,
-	description: '' as string | null,
-	is_active: true as boolean,
-	sku: '' as string | null,
-	unit_id: null as number | null,
-	category_id: null as number | null,
-	category_name: '' as string | null,
-	unit_name: '' as string | null,
+	business_id: null,
+	name: null,
+	sku: null,
+	description: null,
+	is_active: true,
+	unit_id: null,
+	category_id: null,
+	unit_name: null,
+	category_name: null,
 })
+const form = reactive<ProductFormState>(createDefaultForm())
 
 const products = ref<Product[]>([])
 //lấy option
-const unitOptions = ref<Unit[]>([])
-const categoryOptions = ref<Category[]>([])
+const unitOptions = ref<UnitOptionListData>([])
+const categoryOptions = ref<CategoryOptionListData>([])
 const loading = ref(false)
 const pagination = reactive<Pagination>({
 	page: 1,
@@ -116,10 +120,8 @@ const handleOpenCreateModal = () => {
 // gọi thêm api
 const fetchUnitOptions = async () => {
 	try {
-		const res = await getUnitList({
-			is_option: 1,
-		})
-		unitOptions.value = res.data.data
+		const res = await getUnitList({ is_option: 1 })
+		unitOptions.value = (res.data.data as unknown as UnitOptionListData) ?? []
 	} catch (error) {
 		console.error(error)
 	}
@@ -127,10 +129,8 @@ const fetchUnitOptions = async () => {
 
 const fetchCategoryOptions = async () => {
 	try {
-		const res = await getCategoryList({
-			is_option: 1,
-		})
-		categoryOptions.value = res.data.data
+		const res = await getCategoryList({ is_option: 1 })
+		categoryOptions.value = (res.data.data as unknown as CategoryOptionListData) ?? []
 	} catch (error) {
 		console.error(error)
 	}
@@ -144,22 +144,22 @@ const fetchProducts = async () => {
 			per_page: pagination.pageSize,
 			name: searchForm.name,
 			is_active:
-				searchForm.is_active === null || searchForm.is_active === undefined
+				searchForm.is_active === '' ||
+				searchForm.is_active === null ||
+				searchForm.is_active === undefined
 					? undefined
-					: searchForm.is_active
-						? 1
-						: 0,
+					: Number(searchForm.is_active),
 		})
 		const responseData = res.data.data
-		products.value = responseData.items.map((item: any) => ({
+		products.value = (responseData.items ?? []).map((item: any) => ({
 			...item,
 			is_active: item.is_active ? 'hoạt động' : 'Ngừng hoạt động',
-			unit_name: item.unit?.name,
-			category_name: item.category?.name,
+			unit_name: item.unit?.name ?? null,
+			category_name: item.category?.name ?? null,
 		}))
-		pagination.page = responseData.current_page
-		pagination.pageSize = responseData.per_page
-		pagination.total = responseData.total
+		pagination.page = responseData.current_page ?? 1
+		pagination.pageSize = responseData.per_page ?? 10
+		pagination.total = responseData.total ?? 0
 	} catch (error) {
 		console.error(error)
 	} finally {
@@ -173,13 +173,13 @@ const handleViewProduct = async (id: number) => {
 		const product = res.data.data
 		form.id = product.id
 		form.name = product.name
-		form.description = product.description
-		form.sku = product.sku
+		form.description = product.description ?? null
+		form.sku = product.sku ?? null
 		form.is_active = Boolean(product.is_active)
-		form.unit_id = Number(product.unit_id)
-		form.category_id = Number(product.category_id)
-		form.category_name = product.category?.name
-		form.unit_name = product.unit?.name
+		form.unit_id = Number(product.unit_id) ?? undefined
+		form.category_id = Number(product.category_id) ?? undefined
+		form.category_name = product.category?.name ?? null
+		form.unit_name = product.unit?.name ?? null
 		showCreateModal.value = true
 	} catch (error) {
 		console.error(error)
@@ -188,15 +188,15 @@ const handleViewProduct = async (id: number) => {
 const handleSubmit = async () => {
 	try {
 		loading.value = true
-		const payload = {
-			name: form.name,
-			description: form.description,
+		const payload: ProductFormRequest = {
+			name: form.name ?? '',
+			description: form.description ?? undefined,
 			is_active: form.is_active,
-			unit_id: form.unit_id,
-			category_id: form.category_id,
+			unit_id: form.unit_id ?? undefined,
+			category_id: form.category_id ?? undefined,
 		}
-		if (modalMode.value === 'crate'){
-			payload.sku = form.sku
+		if (modalMode.value === 'create') {
+			payload.sku = form.sku ?? undefined
 		}
 		if (!form.id) {
 			//create

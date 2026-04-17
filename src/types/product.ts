@@ -7,7 +7,7 @@ export interface ProductListParams {
 	sort_by?: string
 	sort_order?: 'asc' | 'desc'
 	name?: string
-	is_active?: boolean
+	is_active?: number
 	category_id?: number
 	unit_id?: number
 	is_option?: boolean | number
@@ -44,9 +44,22 @@ export interface ProductFormRequest {
 	is_active?: boolean
 }
 export interface ProductListData {
-	item: Product[]
+	items: Product[]
 	current_page?: number
 	per_page?: number
 	total?: number
 	last_page?: number
 }
+export interface ProductFormState {
+	id: number
+	business_id: number | null
+	name: string | null
+	description: string | null
+	is_active: boolean
+	sku: string | null
+	unit_id: number | null
+	category_id: number | null
+	category_name: string | null
+	unit_name: string | null
+}
+

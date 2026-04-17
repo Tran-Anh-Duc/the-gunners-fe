@@ -9,6 +9,7 @@ import type {
 	WarehouseDocumentFormDetail,
 	WarehouseDocumentFormRequest,
 	WarehouseDocumentListParams,
+	WarehouseDocumentSearchForm,
 } from '@/types/WarehouseDocument.ts'
 import type { Pagination } from '@/types/pagination.ts'
 import { getWarehouseDocumentList, showWarehouseDocumentApi } from '@/api/warehouseDocument.api.ts'
@@ -53,10 +54,10 @@ const createDefaultWarehouseDocumentDetail = (): WarehouseDocumentFormDetail => 
 	total_price: 0,
 	note: null,
 	product_options: [],
-	product_loading: false
+	product_loading: false,
 })
 const createDefaultWarehouseDocumentForm = (): WarehouseDocumentFormRequest => ({
-	business_id: 1,
+	business_id: 0,
 	document_code: '',
 	document_type: 'import',
 	warehouse_id: null,
@@ -66,6 +67,17 @@ const createDefaultWarehouseDocumentForm = (): WarehouseDocumentFormRequest => (
 	note: null,
 	approved_by: null,
 	approved_at: null,
+
+	warehouse_name: null,
+	creator_name: null,
+	approver_name: null,
+	updater_name: null,
+	created_at: null,
+	updated_at: null,
+	subtotal_amount: 0,
+	tax_amount: 0,
+	total_amount: 0,
+
 	details: [createDefaultWarehouseDocumentDetail()],
 })
 
@@ -78,7 +90,7 @@ const pagination = reactive<Pagination>({
 	pageSize: 10,
 	total: 0,
 })
-const searchForm = reactive<WarehouseDocumentListParams>({
+const searchForm = reactive<WarehouseDocumentSearchForm>({
 	document_code: '',
 	document_type: null,
 })
@@ -142,7 +154,6 @@ const handleRemoveDetailRow = (index: number) => {
 	form.details.splice(index, 1)
 }
 
-
 //function
 const fetchWarehouseDocuments = async () => {
 	try {
@@ -155,9 +166,9 @@ const fetchWarehouseDocuments = async () => {
 		})
 		const responseData = res.data.data
 		warehouseDocuments.value = responseData.items
-		pagination.page = responseData.current_page
-		pagination.pageSize = responseData.per_page
-		pagination.total = responseData.total
+		pagination.page = responseData.current_page ?? 1
+		pagination.pageSize = responseData.per_page ?? 10
+		pagination.total = responseData.total ?? 0
 	} catch (error) {
 		console.error(error)
 	} finally {
@@ -182,15 +193,16 @@ const mapWarehouseDocumentToForm = (data: WarehouseDocument): WarehouseDocumentF
 				: 'draft',
 		reference_code: data.reference_code ?? null,
 		note: data.note ?? null,
-		approver_name: data.approver.name ?? null,
+		approver_name: data.approver?.name ?? '',
 		approved_by: data.approver?.id ?? null,
 		approved_at: data.approved_at ?? null,
 		creator_name: data.creator.name ?? null,
 		created_at: data.created_at ?? null,
 		updated_at: data.updated_at ?? null,
-		subtotal_amount: data.subtotal_amount ?? 0,
-		tax_amount: data.tax_amount ?? 0,
-		total_amount: data.total_amount ?? 0,
+		subtotal_amount: Number(data.subtotal_amount ?? 0),
+		tax_amount: Number(data.tax_amount ?? 0),
+		total_amount: Number(data.total_amount ?? 0),
+		updater_name: data.updater?.name ?? null,
 		details:
 			data.details && data.details.length > 0
 				? data.details.map((item) => ({
@@ -205,6 +217,8 @@ const mapWarehouseDocumentToForm = (data: WarehouseDocument): WarehouseDocumentF
 						tax_price: Number(item.tax_price ?? 0),
 						total_price: Number(item.total_price ?? 0),
 						note: item.note ?? null,
+						product_options: [],
+						product_loading: false,
 					}))
 				: [createDefaultWarehouseDocumentDetail()],
 	}
@@ -229,7 +243,7 @@ const handleSubmit = async () => {
 }
 
 //getProductList
-const handleSearchProduct  = async (name: string, row: any) => {
+const handleSearchProduct = async (name: string, row: any) => {
 	if (!name || !name.trim()) {
 		row.product_options = []
 		return
@@ -243,13 +257,13 @@ const handleSearchProduct  = async (name: string, row: any) => {
 		})
 		row.product_options = res.data.data.items || []
 		console.log(row.product_options)
-	}catch (error) {
+	} catch (error) {
 		console.error(error)
-	}finally {
+	} finally {
 		row.product_loading = false
 	}
 }
-const handleSelectProduct = (productId: number, row: any) => {
+const handleSelectProduct = (productId: number | null, row: any) => {
 	const product = row.product_options.find((item: any) => item.id === productId)
 
 	if (!product) return
@@ -260,8 +274,6 @@ const handleSelectProduct = (productId: number, row: any) => {
 	row.unit_name = product.unit?.name ?? ''
 	row.unit_price = Number(product.sale_price || 0)
 }
-
-
 
 onMounted(async () => {
 	try {
@@ -698,9 +710,9 @@ onUnmounted(() => {
 										filterable
 										remote
 										clearable
-										:remote-method="query => handleSearchProduct(query, row)"
+										:remote-method="(query: string) => handleSearchProduct(query, row)"
 										:loading="row.product_loading"
-										@change="value => handleSelectProduct(value, row)"
+										@change="(value: number|null) => handleSelectProduct(value, row)"
 										placeholder="Chọn sản phẩm"
 										style="width: 100%"
 									>

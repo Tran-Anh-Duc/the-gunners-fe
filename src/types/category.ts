@@ -40,3 +40,9 @@ export interface CategoryFormState {
 	description: string | null
 	is_active: boolean
 }
+export interface CategoryOption {
+	id: number
+	name: string
+}
+export type CategoryOptionListData = CategoryOption[]
+

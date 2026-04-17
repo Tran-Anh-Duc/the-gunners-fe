@@ -8,6 +8,13 @@ export interface LoginResponse {
   token_type: string
   expires_in: number
 }
+export interface AuthUser {
+  id: number
+  name: string
+  email: string
+  business_id: number | null
+  business_name: string | null
+}
 
 export interface ApiResponse<T> {
   status: boolean

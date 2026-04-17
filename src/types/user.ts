@@ -30,24 +30,29 @@ export interface UserListData {
   total: number
 }
 
- export interface CreateUserRequest {
-  name: string
-  email: string
-  password: string
-  phone?: string
+export interface CreateUserRequest {
+	name: string
+	email: string
+	password: string
+	phone?: string
+	avatar?: string | null
+	is_active?: boolean
+	business_id?: number | null
+	role?: string
 }
 
 
 export interface UpdateUserPayload {
-  name: string
-  email: string
-  password?: string
-  phone?: string
-  role?: string
-  membership_status?: string
-  is_owner?: boolean
-  is_active?: boolean
-  business_id?: number
+	name: string
+	email: string
+	password?: string
+	phone?: string
+	role?: string
+	membership_status?: string
+	is_owner?: boolean
+	is_active?: boolean
+	business_id?: number
+	avatar?: string | null
 }
 
 

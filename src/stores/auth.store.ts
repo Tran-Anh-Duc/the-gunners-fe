@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia'
 import { loginApi } from '@/api/auth.api'
-import type { LoginRequest, LoginResponse } from '@/types/api'
+import type { AuthUser, LoginRequest, LoginResponse } from '@/types/api'
 import { jwtDecode } from 'jwt-decode'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: null as LoginResponse | null,
+    user: null as AuthUser | null,
     token: '' as string,
     loading: false,
     expires_in: 0 as number,
