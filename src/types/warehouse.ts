@@ -6,6 +6,7 @@ export interface WarehouseListParams {
 	code?: string
 	name?: string
 	is_active?: number
+	is_option?: boolean | number
 }
 
 export interface Warehouse {

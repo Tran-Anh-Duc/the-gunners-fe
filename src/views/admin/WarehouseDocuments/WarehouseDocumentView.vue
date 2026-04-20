@@ -14,7 +14,8 @@ import type {
 import type { Pagination } from '@/types/pagination.ts'
 import { getWarehouseDocumentList, showWarehouseDocumentApi } from '@/api/warehouseDocument.api.ts'
 import { getProductList } from '@/api/product.api.ts'
-
+import dayjs from 'dayjs'
+import { getWarehouseList } from '@/api/warehouse.api.ts'
 const isMobile = ref(false)
 
 const checkMobile = () => {
@@ -55,8 +56,11 @@ const createDefaultWarehouseDocumentDetail = (): WarehouseDocumentFormDetail => 
 	note: null,
 	product_options: [],
 	product_loading: false,
+	warehouse_options: [],
+	warehouse_loading: false,
 })
 const createDefaultWarehouseDocumentForm = (): WarehouseDocumentFormRequest => ({
+	id: 0,
 	business_id: 0,
 	document_code: '',
 	document_type: 'import',
@@ -186,7 +190,7 @@ const mapWarehouseDocumentToForm = (data: WarehouseDocument): WarehouseDocumentF
 
 		warehouse_id: data.warehouse?.id ?? null,
 		warehouse_name: data.warehouse.name ?? null,
-		document_date: data.document_date ?? '',
+		document_date: dayjs(data.document_date, 'DD/MM/YYYY HH:mm').format('YYYY-MM-DD HH:mm:ss'),
 		status:
 			data.status === 'draft' || data.status === 'confirmed' || data.status === 'cancelled'
 				? data.status
@@ -219,6 +223,8 @@ const mapWarehouseDocumentToForm = (data: WarehouseDocument): WarehouseDocumentF
 						note: item.note ?? null,
 						product_options: [],
 						product_loading: false,
+						warehouse_options: [],
+						warehouse_loading: false,
 					}))
 				: [createDefaultWarehouseDocumentDetail()],
 	}
@@ -227,8 +233,8 @@ const getWarehouseDocumentDetail = async (id: number) => {
 	try {
 		const res = await showWarehouseDocumentApi(id)
 		const data = res.data.data
-		Object.assign(form, mapWarehouseDocumentToForm(data))
-		console.log(form)
+		const mappedData = mapWarehouseDocumentToForm(data)
+		Object.assign(form, mappedData)
 	} catch (error) {
 		console.error(error)
 	}
@@ -236,9 +242,40 @@ const getWarehouseDocumentDetail = async (id: number) => {
 
 const handleSubmit = async () => {
 	try {
-		console.log('herr')
+		loading.value = true
+
+		const payload = {
+			document_type: form.document_type,
+			warehouse_id: form.warehouse_id,
+			document_date: form.document_date,
+			status: form.status,
+			reference_code: form.reference_code,
+			note: form.note,
+			approved_by: form.approved_by,
+			approved_at: form.approved_at,
+			details: form.details.map((d) => ({
+				product_id: d.product_id,
+				product_name: d.product_name,
+				unit_id: d.unit_id,
+				unit_name: d.unit_name,
+				quantity: d.quantity,
+				unit_price: d.unit_price,
+				subtotal: d.subtotal,
+				tax_rate: d.tax_rate,
+				tax_price: d.tax_price,
+				total_price: d.total_price,
+				note: d.note,
+			})),
+		}
+		console.log(payload)
+		if (!form.id) {
+		} else {
+		}
+		//await createWarehouseDocumentApi(payload)
 	} catch (error) {
 		console.error(error)
+	} finally {
+		loading.value = false
 	}
 }
 
@@ -250,12 +287,11 @@ const handleSearchProduct = async (name: string, row: any) => {
 	}
 	try {
 		row.product_loading = true
-
 		const res = await getProductList({
 			name,
 			is_option: 1,
 		})
-		row.product_options = res.data.data.items || []
+		row.product_options = res.data.data || []
 		console.log(row.product_options)
 	} catch (error) {
 		console.error(error)
@@ -265,14 +301,34 @@ const handleSearchProduct = async (name: string, row: any) => {
 }
 const handleSelectProduct = (productId: number | null, row: any) => {
 	const product = row.product_options.find((item: any) => item.id === productId)
-
 	if (!product) return
-
 	row.product_id = product.id
 	row.product_name = product.name
 	row.unit_id = product.unit?.id ?? null
 	row.unit_name = product.unit?.name ?? ''
 	row.unit_price = Number(product.sale_price || 0)
+}
+const warehouse_loading = ref(false)
+const warehouse_options = ref([])
+const handleSearchWarehouse = async (name: string) => {
+	if (!name || !name.trim()) {
+		warehouse_options.value = []
+		return
+	}
+	try {
+		warehouse_loading.value = true
+
+		const res = await getWarehouseList({
+			name,
+			is_option: 1,
+		})
+		warehouse_options.value = res.data.data || []
+	} catch (error) {
+		console.error(error)
+		warehouse_options.value = []
+	} finally {
+		warehouse_loading.value = false
+	}
 }
 
 onMounted(async () => {
@@ -586,19 +642,21 @@ onUnmounted(() => {
 											<el-col :span="12">
 												<el-form-item label="Kho">
 													<el-select
-														v-model="form.warehouse_id"
-														placeholder="Chọn kho"
+														v-model="form.warehouse_name"
+														filterable
+														remote
+														remote-show-suffix
+														:remote-method="handleSearchWarehouse"
+														:loading="warehouse_loading"
+														placeholder="Tìm kho"
 														style="width: 100%"
 													>
-														<!-- ví dụ -->
-														<!--
 														<el-option
-														  v-for="item in warehouseOptions"
-														  :key="item.id"
-														  :label="item.name"
-														  :value="item.id"
+															v-for="item in warehouse_options"
+															:key="item.id"
+															:label="`${item.code} - ${item.name}`"
+															:value="item.id"
 														/>
-														-->
 													</el-select>
 												</el-form-item>
 											</el-col>
@@ -697,7 +755,7 @@ onUnmounted(() => {
 					<el-card class="detail-section">
 						<div class="overview-card__title detail-section__header">
 							<span>Chi tiết sản phẩm</span>
-							<el-button type="primary" plain @click="handleAddDetailRow">
+							<el-button type="primary" style="margin-left: 5px" plain @click="handleAddDetailRow">
 								+ Thêm dòng
 							</el-button>
 						</div>
@@ -706,13 +764,18 @@ onUnmounted(() => {
 							<el-table-column label="Sản phẩm" min-width="220">
 								<template #default="{ row }">
 									<el-select
-										v-model="row.product_id"
+										v-model="row.product_name"
 										filterable
 										remote
 										clearable
-										:remote-method="(query: string) => handleSearchProduct(query, row)"
+										:remote-method="
+											(query: string) => handleSearchProduct(query, row)
+										"
 										:loading="row.product_loading"
-										@change="(value: number|null) => handleSelectProduct(value, row)"
+										@change="
+											(value: number | null) =>
+												handleSelectProduct(value, row)
+										"
 										placeholder="Chọn sản phẩm"
 										style="width: 100%"
 									>
@@ -726,13 +789,13 @@ onUnmounted(() => {
 								</template>
 							</el-table-column>
 
-							<el-table-column label="Đơn vị" min-width="140">
+							<el-table-column label="Đơn vị" min-width="70">
 								<template #default="{ row }">
 									<el-input v-model="row.unit_name" readonly />
 								</template>
 							</el-table-column>
 
-							<el-table-column label="SL" width="120" align="right">
+							<el-table-column label="SL" width="140" align="left">
 								<template #default="{ row }">
 									<el-input-number
 										v-model="row.quantity"
@@ -742,7 +805,7 @@ onUnmounted(() => {
 								</template>
 							</el-table-column>
 
-							<el-table-column label="Đơn giá" width="150" align="right">
+							<el-table-column label="Đơn giá" width="200" align="left">
 								<template #default="{ row }">
 									<el-input-number
 										v-model="row.unit_price"
@@ -753,7 +816,7 @@ onUnmounted(() => {
 								</template>
 							</el-table-column>
 
-							<el-table-column label="Thuế (%)" width="120" align="right">
+							<el-table-column label="Thuế (%)" width="140" align="left">
 								<template #default="{ row }">
 									<el-input-number
 										v-model="row.tax_rate"
@@ -764,9 +827,11 @@ onUnmounted(() => {
 								</template>
 							</el-table-column>
 
-							<el-table-column label="Thành tiền" width="160" align="right">
+							<el-table-column label="Thành tiền" width="160" label-align="left">
 								<template #default="{ row }">
-									{{ formatMoney(row.total_price) }}
+									<div style="text-align: right">
+										{{ formatMoney(row.total_price) }}
+									</div>
 								</template>
 							</el-table-column>
 

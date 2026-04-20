@@ -102,9 +102,12 @@ export interface WarehouseDocumentFormDetail {
 	note: string | null
 	product_options: any[]
 	product_loading: boolean
+	warehouse_options: [],
+	warehouse_loading: boolean,
 }
 
 export interface WarehouseDocumentFormRequest {
+	id: number
 	business_id: number | null
 	document_code: string
 	document_type: 'import' | 'export' | ''
