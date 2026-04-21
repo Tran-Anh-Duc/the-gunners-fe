@@ -12,10 +12,16 @@ import type {
 	WarehouseDocumentSearchForm,
 } from '@/types/WarehouseDocument.ts'
 import type { Pagination } from '@/types/pagination.ts'
-import { getWarehouseDocumentList, showWarehouseDocumentApi } from '@/api/warehouseDocument.api.ts'
+import {
+	createWarehouseDocumentApi,
+	getWarehouseDocumentList,
+	showWarehouseDocumentApi,
+	updateWarehouseDocumentApi,
+} from '@/api/warehouseDocument.api.ts'
 import { getProductList } from '@/api/product.api.ts'
 import dayjs from 'dayjs'
 import { getWarehouseList } from '@/api/warehouse.api.ts'
+
 const isMobile = ref(false)
 
 const checkMobile = () => {
@@ -60,7 +66,7 @@ const createDefaultWarehouseDocumentDetail = (): WarehouseDocumentFormDetail => 
 	warehouse_loading: false,
 })
 const createDefaultWarehouseDocumentForm = (): WarehouseDocumentFormRequest => ({
-	id: 0,
+	id: null,
 	business_id: 0,
 	document_code: '',
 	document_type: 'import',
@@ -223,8 +229,6 @@ const mapWarehouseDocumentToForm = (data: WarehouseDocument): WarehouseDocumentF
 						note: item.note ?? null,
 						product_options: [],
 						product_loading: false,
-						warehouse_options: [],
-						warehouse_loading: false,
 					}))
 				: [createDefaultWarehouseDocumentDetail()],
 	}
@@ -234,6 +238,16 @@ const getWarehouseDocumentDetail = async (id: number) => {
 		const res = await showWarehouseDocumentApi(id)
 		const data = res.data.data
 		const mappedData = mapWarehouseDocumentToForm(data)
+		form.id = data.id
+		if (data.warehouse) {
+			warehouse_options.value = [
+				{
+					id: data.warehouse.id,
+					code: data.warehouse.code,
+					name: data.warehouse.name,
+				},
+			]
+		}
 		Object.assign(form, mappedData)
 	} catch (error) {
 		console.error(error)
@@ -251,8 +265,7 @@ const handleSubmit = async () => {
 			status: form.status,
 			reference_code: form.reference_code,
 			note: form.note,
-			approved_by: form.approved_by,
-			approved_at: form.approved_at,
+			is_price_includes_tax: form.is_price_includes_tax ?? false,
 			details: form.details.map((d) => ({
 				product_id: d.product_id,
 				product_name: d.product_name,
@@ -267,10 +280,24 @@ const handleSubmit = async () => {
 				note: d.note,
 			})),
 		}
-		console.log(payload)
+
 		if (!form.id) {
+			await createWarehouseDocumentApi(payload)
+			if (form.document_type == 'import') {
+				ElMessage.success('Tạo phiếu nhập thành công')
+			} else {
+				ElMessage.success('Tạo phiếu xuất thành công')
+			}
 		} else {
+			await updateWarehouseDocumentApi(form.id, payload)
+			if (form.document_type == 'import') {
+				ElMessage.success('Cập nhật phiếu nhập thành công')
+			} else {
+				ElMessage.success('Cập nhật phiếu xuất thành công')
+			}
 		}
+		handleCloseCreateModal()
+		await fetchWarehouseDocuments()
 		//await createWarehouseDocumentApi(payload)
 	} catch (error) {
 		console.error(error)
@@ -292,7 +319,6 @@ const handleSearchProduct = async (name: string, row: any) => {
 			is_option: 1,
 		})
 		row.product_options = res.data.data || []
-		console.log(row.product_options)
 	} catch (error) {
 		console.error(error)
 	} finally {
@@ -329,6 +355,28 @@ const handleSearchWarehouse = async (name: string) => {
 	} finally {
 		warehouse_loading.value = false
 	}
+}
+
+//tinh toan gia tien khi thay doi
+const recalculateDetail = (row: WarehouseDocumentFormDetail) => {
+	const quantity = Number(row.quantity) || 0
+	const unitPrice = Number(row.unit_price) || 0
+	const taxRate = Number(row.tax_rate) || 0
+
+	row.subtotal = quantity * unitPrice
+	row.tax_price = (row.subtotal * taxRate) / 100
+	row.total_price = row.subtotal + row.tax_price
+}
+const handleQuantityChange = (row: WarehouseDocumentFormDetail) => {
+	recalculateDetail(row)
+}
+
+const handleUnitPriceChange = (row: WarehouseDocumentFormDetail) => {
+	recalculateDetail(row)
+}
+
+const handleTaxRateChange = (row: WarehouseDocumentFormDetail) => {
+	recalculateDetail(row)
 }
 
 onMounted(async () => {
@@ -589,9 +637,9 @@ onUnmounted(() => {
 
 				<template v-else>
 					<div class="document-overview-form">
-						<el-row :gutter="16">
-							<el-col :xs="24" :sm="24" :md="12">
-								<el-card>
+						<el-row :gutter="16" class="equal-row">
+							<el-col :xs="24" :sm="24" :md="12" class="equal-col">
+								<el-card class="equal-card">
 									<div class="overview-card__title">Thông tin chứng từ</div>
 
 									<el-form
@@ -604,7 +652,7 @@ onUnmounted(() => {
 												<el-form-item label="Mã chứng từ">
 													<el-input
 														v-model="form.document_code"
-														placeholder="Nhập mã chứng từ"
+														:disabled="true"
 													/>
 												</el-form-item>
 											</el-col>
@@ -632,9 +680,11 @@ onUnmounted(() => {
 												<el-form-item label="Ngày chứng từ">
 													<el-date-picker
 														v-model="form.document_date"
-														type="datetime"
+														type="date"
 														placeholder="Chọn ngày chứng từ"
 														style="width: 100%"
+														value-format="YYYY-MM-DD"
+														format="DD/MM/YYYY"
 													/>
 												</el-form-item>
 											</el-col>
@@ -642,7 +692,7 @@ onUnmounted(() => {
 											<el-col :span="12">
 												<el-form-item label="Kho">
 													<el-select
-														v-model="form.warehouse_name"
+														v-model="form.warehouse_id"
 														filterable
 														remote
 														remote-show-suffix
@@ -692,8 +742,8 @@ onUnmounted(() => {
 								</el-card>
 							</el-col>
 
-							<el-col :xs="24" :sm="24" :md="12">
-								<el-card>
+							<el-col :xs="24" :sm="24" :md="12" class="equal-col">
+								<el-card class="equal-card">
 									<div class="overview-card__title">Thông tin xử lý</div>
 
 									<el-form
@@ -702,7 +752,7 @@ onUnmounted(() => {
 										class="document-form-section"
 									>
 										<el-row :gutter="16">
-											<el-col :span="12">
+											<el-col :span="12" v-show="modalMode === 'edit'">
 												<el-form-item label="Người tạo">
 													<el-input
 														v-model="form.creator_name"
@@ -711,13 +761,13 @@ onUnmounted(() => {
 												</el-form-item>
 											</el-col>
 
-											<el-col :span="12">
+											<el-col :span="12" v-show="modalMode === 'edit'">
 												<el-form-item label="Ngày tạo">
 													<el-input v-model="form.created_at" readonly />
 												</el-form-item>
 											</el-col>
 
-											<el-col :span="12">
+											<el-col :span="12" v-show="modalMode === 'edit'">
 												<el-form-item label="Người duyệt">
 													<el-input
 														v-model="form.approver_name"
@@ -726,13 +776,13 @@ onUnmounted(() => {
 												</el-form-item>
 											</el-col>
 
-											<el-col :span="12">
+											<el-col :span="12" v-show="modalMode === 'edit'">
 												<el-form-item label="Ngày duyệt">
 													<el-input v-model="form.approved_at" readonly />
 												</el-form-item>
 											</el-col>
 
-											<el-col :span="12">
+											<el-col :span="12" v-show="modalMode === 'edit'">
 												<el-form-item label="Người cập nhật">
 													<el-input
 														v-model="form.updater_name"
@@ -741,9 +791,14 @@ onUnmounted(() => {
 												</el-form-item>
 											</el-col>
 
-											<el-col :span="12">
+											<el-col :span="12" v-show="modalMode === 'edit'">
 												<el-form-item label="Ngày cập nhật">
 													<el-input v-model="form.updated_at" readonly />
+												</el-form-item>
+											</el-col>
+											<el-col :span="24">
+												<el-form-item label="Ghi chú">
+													<el-input v-model="form.note" type="textarea" />
 												</el-form-item>
 											</el-col>
 										</el-row>
@@ -755,7 +810,12 @@ onUnmounted(() => {
 					<el-card class="detail-section">
 						<div class="overview-card__title detail-section__header">
 							<span>Chi tiết sản phẩm</span>
-							<el-button type="primary" style="margin-left: 5px" plain @click="handleAddDetailRow">
+							<el-button
+								type="primary"
+								style="margin-left: 5px"
+								plain
+								@click="handleAddDetailRow"
+							>
 								+ Thêm dòng
 							</el-button>
 						</div>
@@ -801,6 +861,7 @@ onUnmounted(() => {
 										v-model="row.quantity"
 										:min="1"
 										style="width: 100%"
+										@change="handleQuantityChange(row)"
 									/>
 								</template>
 							</el-table-column>
@@ -812,18 +873,22 @@ onUnmounted(() => {
 										:min="0"
 										:precision="2"
 										style="width: 100%"
+										@change="handleUnitPriceChange(row)"
 									/>
 								</template>
 							</el-table-column>
 
 							<el-table-column label="Thuế (%)" width="140" align="left">
 								<template #default="{ row }">
-									<el-input-number
+									<el-select
 										v-model="row.tax_rate"
-										:min="0"
-										:max="100"
+										placeholder="Chọn thuế"
 										style="width: 100%"
-									/>
+										@change="handleTaxRateChange(row)"
+									>
+										<el-option label="8%" :value="8" />
+										<el-option label="10%" :value="10" />
+									</el-select>
 								</template>
 							</el-table-column>
 
@@ -1048,6 +1113,7 @@ onUnmounted(() => {
 	margin-top: 8px;
 	padding-top: 10px;
 }
+
 .drawer-title {
 	font-size: 20px;
 	font-weight: 600;
