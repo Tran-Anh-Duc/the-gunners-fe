@@ -11,3 +11,4 @@ export interface TableColumn {
   type?: 'actions'
   actions?: TableAction[]
 }
+

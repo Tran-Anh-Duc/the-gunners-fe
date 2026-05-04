@@ -13,6 +13,7 @@ import ProductListView from '@/views/admin/Products/ProductListView.vue'
 import CustomerListView from '@/views/admin/Customers/CustomerListView.vue'
 import SupplierListView from '@/views/admin/Suppliers/SupplierListView.vue'
 import WarehouseDocumentView from '@/views/admin/WarehouseDocuments/WarehouseDocumentView.vue'
+import InventoryOpeningView from '@/views/admin/InventoryOpenings/InventoryOpeningView.vue'
 
 const routes: AppRoutes = [
 	{
@@ -103,11 +104,19 @@ const routes: AppRoutes = [
 				},
 			},
 			{
+				path: 'inventory-openings',
+				name: 'admin.inventory-openings',
+				component: InventoryOpeningView,
+				meta: {
+					title: 'Inventory Openings',
+				},
+			},
+			{
 				path: 'warehouse-documents',
 				name: 'admin.warehouse_documents',
 				component: WarehouseDocumentView,
 				meta: {
-					title: 'warehouse-documents',
+					title: 'Warehouse Documents',
 				},
 			},
 		],

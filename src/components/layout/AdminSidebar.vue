@@ -34,6 +34,8 @@ const handleClick = () => {
 			<el-menu-item index="/admin/customers">Danh mục khách hàng (nhận)</el-menu-item>
 
 			<el-menu-item index="/admin/suppliers">Danh mục khách hàng (nhập)</el-menu-item>
+
+			<el-menu-item index="/admin/inventory-openings">Tồn đầu kỳ</el-menu-item>
 		</el-sub-menu>
 		<!-- List order -->
 		<el-sub-menu index="warehouse-documents">
