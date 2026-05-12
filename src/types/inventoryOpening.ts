@@ -33,9 +33,9 @@ export interface InventoryOpening {
 	product_name: string
 	unit_id: number
 	unit_name: string
-	quantity: string
-	unit_cost: string
-	total_cost: string
+	quantity: number | string
+	unit_cost: number | string
+	total_cost: number | string
 	note: string | null
 }
 
@@ -82,12 +82,12 @@ export interface InventoryOpeningForm {
 	business_id?: number
 	warehouse_id?: number
 	product_id?: number
-	product_name: string
+	product_name?: string
 	unit_id?: number
-	unit_name: string
+	unit_name?: string
 	opening_date: string
-	quantity: number
-	unit_cost: number
+	quantity?: number
+	unit_cost?: number
 	note?: string | null
 }
 

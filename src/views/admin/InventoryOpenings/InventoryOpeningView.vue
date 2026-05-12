@@ -4,17 +4,24 @@ import type { TableColumn } from '@/types/table.ts'
 import { ref, onMounted, reactive, computed, onUnmounted } from 'vue'
 import AppModal from '@/components/common/AppModal.vue'
 import { ElMessage, ElDescriptions, ElDescriptionsItem } from 'element-plus'
+import dayjs from 'dayjs'
 import type {
 	InventoryOpeningGroup,
-	InventoryOpeningTableRow
+	InventoryOpeningTableRow,
+	InventoryOpeningForm, InventoryOpening
 } from '@/types/inventoryOpening.ts'
 import type { Pagination } from '@/types/pagination.ts'
 import {
 	getInventoryOpeningsList,
-	createInventoryOpeningApi
+	createInventoryOpeningApi,
+	showInventoryOpeningApi,
+	updateInventoryOpeningApi
 } from '@/api/inventoryOpening.api.ts'
+import type { Product } from '@/types/product.ts'
+import type { Warehouse } from '@/types/warehouse.ts'
+import { getProductList } from '@/api/product.api.ts'
+import { getWarehouseList } from '@/api/warehouse.api.ts'
 const isMobile = ref(false)
-
 
 const loading = ref(false)
 const inventoryOpeningGroups = ref<InventoryOpeningGroup[]>([])
@@ -40,7 +47,6 @@ const searchForm = reactive({
 	sort_by: '',
 	sort_order: 'desc' as 'asc' | 'desc',
 })
-
 
 const tableRows = computed<InventoryOpeningTableRow[]>(() => {
 	const rows: InventoryOpeningTableRow[] = []
@@ -106,10 +112,163 @@ const fetchInventoryOpenings = async () => {
 	}
 }
 
+// submit form
+
+const drawerVisible = ref(false)
+const drawerMode = ref<'create' | 'edit' | 'view'>('create')
+const submitLoading = ref(false)
+
+const defaultForm = (): InventoryOpeningForm => ({
+	business_id: undefined,
+	warehouse_id: undefined,
+	product_id: undefined,
+	product_name: '',
+	unit_id: undefined,
+	unit_name: '',
+	opening_date: dayjs().format('YYYY-MM-DD'),
+	quantity: undefined,
+	unit_cost: undefined,
+	note: null,
+})
+
+const form = reactive<InventoryOpeningForm>(defaultForm())
+const resetForm = () => {
+	Object.assign(form, defaultForm())
+}
 const handleCreate = () => {
-	console.log('create inventory opening')
+	drawerMode.value = 'create'
+	resetForm()
+	drawerVisible.value = true
 }
 
+const warehouse_options = ref<Warehouse[]>([])
+const warehouse_loading = ref(false)
+
+const product_options = ref<Product[]>([])
+const product_loading = ref(false)
+
+const formatMoney = (value: number | string | null | undefined): string => {
+	if (value === null || value === undefined || value === '') return '0'
+
+	const number = Number(value)
+
+	if (isNaN(number)) return '0'
+
+	return new Intl.NumberFormat('vi-VN').format(number)
+}
+
+const handleSearchWarehouse = async (query: string) => {
+	warehouse_loading.value = true
+
+	try {
+		const res = await getWarehouseList({
+			name: query,
+			is_option: 1,
+		})
+
+		warehouse_options.value = res.data.data || []
+	} finally {
+		warehouse_loading.value = false
+	}
+}
+
+const handleSearchProduct = async (query: string) => {
+	product_loading.value = true
+
+	try {
+		const res = await getProductList({
+			name: query,
+			is_option: 1,
+		})
+
+		product_options.value = res.data.data || []
+	} finally {
+		product_loading.value = false
+	}
+}
+
+const handleSelectProduct = (productId: number | null) => {
+	const product = product_options.value.find((item) => item.id === productId)
+
+	if (!product) {
+		form.product_id = undefined
+		form.product_name = ''
+		form.unit_id = undefined
+		form.unit_name = ''
+		return
+	}
+
+	form.product_id = product.id
+	form.product_name = product.name
+	form.unit_id = product.unit_id
+	form.unit_name = product.unit?.name || ''
+}
+
+const handleSubmit = async () => {
+	submitLoading.value = true
+
+	try {
+		const payload = {
+			...form,
+			quantity: Number(form.quantity || 0),
+			unit_cost: Number(form.unit_cost || 0),
+		}
+
+		if (drawerMode.value === 'edit' && editingId.value) {
+			await updateInventoryOpeningApi(editingId.value, payload)
+			ElMessage.success('Cập nhật tồn đầu kỳ thành công')
+		} else {
+			await createInventoryOpeningApi(payload)
+			ElMessage.success('Thêm mới tồn đầu kỳ thành công')
+		}
+
+		drawerVisible.value = false
+		fetchInventoryOpenings()
+	} finally {
+		submitLoading.value = false
+	}
+}
+
+const editingId = ref<number | null>(null)
+const drawerLoading = ref(false)
+
+const handleEdit = async (row: InventoryOpening) => {
+	const id = row.opening_id
+	drawerMode.value = 'edit'
+	editingId.value = id
+	resetForm()
+	drawerVisible.value = true
+	drawerLoading.value = true
+
+	try {
+		const res = await showInventoryOpeningApi(id)
+		const data = res.data.data
+		console.log('detail data:', data)
+		console.log('warehouse:', data.warehouse)
+		console.log('product:', data.product)
+		Object.assign(form, {
+			warehouse_id: data.warehouse_id,
+			product_id: data.product_id,
+			product_name: data.product_name,
+			unit_id: data.unit_id,
+			unit_name: data.unit_name,
+			opening_date: data.opening_date,
+			quantity: Number(data.quantity || 0),
+			unit_cost: Number(data.unit_cost || 0),
+			note: data.note ?? null,
+		})
+
+		if (data.warehouse) {
+			warehouse_options.value = [data.warehouse]
+		}
+
+		if (data.product) {
+			product_options.value = [data.product]
+		}
+	} finally {
+		drawerLoading.value = false
+	}
+}
 
 const checkMobile = () => {
 	isMobile.value = window.innerWidth <= 768
@@ -126,6 +285,186 @@ onUnmounted(() => {
 })
 </script>
 <template>
+	<el-drawer
+		v-model="drawerVisible"
+		:title="drawerMode === 'create' ? 'Thêm mới tồn đầu kỳ' : 'Cập nhật tồn đầu kỳ'"
+		:size="isMobile ? '100%' : '1500px'"
+		destroy-on-close
+	>
+		<div class="inventory-opening-drawer">
+			<el-scrollbar class="drawer-scroll">
+				<div class="drawer-content">
+					<div class="drawer-main-layout">
+						<div class="drawer-form-panel">
+							<!-- Form sẽ đặt ở đây -->
+							<el-card shadow="never">
+								<template #header>
+									<span>Thông tin tồn đầu kỳ</span>
+								</template>
+								<el-form
+									ref="formRef"
+									:model="form"
+									label-width="120px"
+									label-position="left"
+								>
+									<!--								thông tin kho-->
+									<el-form-item label="Kho" prop="warehouse_id">
+										<el-select
+											v-model="form.warehouse_id"
+											filterable
+											remote
+											clearable
+											remote-show-suffix
+											:remote-method="handleSearchWarehouse"
+											:loading="warehouse_loading"
+											placeholder="Tìm kho"
+											style="width: 100%"
+										>
+											<el-option
+												v-for="item in warehouse_options"
+												:key="item.id"
+												:label="`${item.code} - ${item.name}`"
+												:value="item.id"
+											/>
+										</el-select>
+									</el-form-item>
+									<el-form-item label="Ngày tồn đầu kỳ" prop="opening_date">
+										<el-date-picker
+											v-model="form.opening_date"
+											type="date"
+											value-format="YYYY-MM-DD"
+											placeholder="Chọn ngày"
+											style="width: 100%"
+										/>
+									</el-form-item>
+									<el-form-item label="Sản phẩm" prop="product_id">
+										<el-select
+											v-model="form.product_id"
+											filterable
+											remote
+											clearable
+											remote-show-suffix
+											:remote-method="handleSearchProduct"
+											:loading="product_loading"
+											@change="handleSelectProduct"
+											placeholder="Tìm sản phẩm"
+											style="width: 100%"
+										>
+											<el-option
+												v-for="item in product_options"
+												:key="item.id"
+												:label="`${item.sku} - ${item.name}`"
+												:value="item.id"
+											/>
+										</el-select>
+									</el-form-item>
+									<el-form-item label="Đơn vị tính">
+										<el-input
+											v-model="form.unit_name"
+											disabled
+											placeholder="Tự động theo sản phẩm"
+										/>
+									</el-form-item>
+									<el-form-item label="Số lượng tồn" prop="quantity">
+										<el-input-number
+											v-model="form.quantity"
+											:min="0"
+											style="width: 100%"
+										/>
+									</el-form-item>
+									<el-form-item label="Giá vốn / đơn vị" prop="unit_cost">
+										<el-input-number
+											v-model="form.unit_cost"
+											:min="0"
+											style="width: 100%"
+										/>
+									</el-form-item>
+									<el-form-item label="Ghi chú" prop="note">
+										<el-input
+											v-model="form.note"
+											type="textarea"
+											:rows="3"
+											placeholder="Nhập ghi chú"
+										/>
+									</el-form-item>
+								</el-form>
+							</el-card>
+						</div>
+
+						<div class="drawer-summary-panel">
+							<el-card shadow="never" class="summary-card">
+								<template #header>
+									<span>Tóm tắt</span>
+								</template>
+
+								<div class="summary-list">
+									<div class="summary-item">
+										<span class="summary-label">Kho</span>
+										<span class="summary-value">
+											{{
+												warehouse_options.find(
+													(item) => item.id === form.warehouse_id,
+												)?.name || '--'
+											}}
+										</span>
+									</div>
+
+									<div class="summary-item">
+										<span class="summary-label">Sản phẩm</span>
+										<span class="summary-value">
+											{{ form.product_name || '--' }}
+										</span>
+									</div>
+
+									<div class="summary-item">
+										<span class="summary-label">Đơn vị</span>
+										<span class="summary-value">
+											{{ form.unit_name || '--' }}
+										</span>
+									</div>
+
+									<div class="summary-item">
+										<span class="summary-label">Số lượng</span>
+										<span class="summary-value">
+											{{ form.quantity || 0 }}
+										</span>
+									</div>
+
+									<div class="summary-item">
+										<span class="summary-label">Giá vốn</span>
+										<span class="summary-value">
+											{{ formatMoney(form.unit_cost || 0) }}
+										</span>
+									</div>
+
+									<div class="summary-total">
+										<div class="summary-total-label">Tổng giá trị tồn</div>
+
+										<div class="summary-total-value">
+											{{
+												formatMoney(
+													(form.quantity || 0) * (form.unit_cost || 0),
+												)
+											}}
+										</div>
+									</div>
+								</div>
+							</el-card>
+						</div>
+					</div>
+				</div>
+			</el-scrollbar>
+
+			<div class="drawer-footer">
+				<el-button @click="drawerVisible = false"> Huỷ </el-button>
+
+				<el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+					Lưu
+				</el-button>
+			</div>
+		</div>
+	</el-drawer>
+
 	<div class="inventory-opening-toolbar">
 		<div class="inventory-opening-search">
 			<div class="search-grid">
@@ -182,9 +521,7 @@ onUnmounted(() => {
 		</div>
 
 		<div class="inventory-opening-actions">
-			<el-button type="primary" @click="handleCreate">
-				Thêm mới
-			</el-button>
+			<el-button type="primary" @click="handleCreate"> Thêm mới </el-button>
 		</div>
 	</div>
 
@@ -200,9 +537,7 @@ onUnmounted(() => {
 	>
 		<el-table-column width="80">
 			<template #default="{ row }">
-				<template v-if="row.row_type === 'product_header'">
-					#
-				</template>
+				<template v-if="row.row_type === 'product_header'"> # </template>
 
 				<template v-else-if="row.row_type === 'product'">
 					{{ row.index }}
@@ -217,9 +552,7 @@ onUnmounted(() => {
 					<span> - {{ row.warehouse_code }}</span>
 				</template>
 
-				<template v-else-if="row.row_type === 'product_header'">
-					Product
-				</template>
+				<template v-else-if="row.row_type === 'product_header'"> Product </template>
 
 				<template v-else>
 					{{ row.product_name }}
@@ -233,9 +566,7 @@ onUnmounted(() => {
 					Opening: {{ row.opening_date }}
 				</template>
 
-				<template v-else-if="row.row_type === 'product_header'">
-					Unit
-				</template>
+				<template v-else-if="row.row_type === 'product_header'"> Unit </template>
 
 				<template v-else>
 					{{ row.unit_name }}
@@ -249,9 +580,7 @@ onUnmounted(() => {
 					Total qty: {{ row.total_quantity }}
 				</template>
 
-				<template v-else-if="row.row_type === 'product_header'">
-					Quantity
-				</template>
+				<template v-else-if="row.row_type === 'product_header'"> Quantity </template>
 
 				<template v-else>
 					{{ row.quantity }}
@@ -261,9 +590,7 @@ onUnmounted(() => {
 
 		<el-table-column width="160" align="right">
 			<template #default="{ row }">
-				<template v-if="row.row_type === 'product_header'">
-					Unit cost
-				</template>
+				<template v-if="row.row_type === 'product_header'"> Unit cost </template>
 
 				<template v-else-if="row.row_type === 'product'">
 					{{ Number(row.unit_cost).toLocaleString() }}
@@ -277,9 +604,7 @@ onUnmounted(() => {
 					Total: {{ Number(row.warehouse_total_cost).toLocaleString() }}
 				</template>
 
-				<template v-else-if="row.row_type === 'product_header'">
-					Amount
-				</template>
+				<template v-else-if="row.row_type === 'product_header'"> Amount </template>
 
 				<template v-else>
 					{{ Number(row.total_cost).toLocaleString() }}
@@ -290,34 +615,19 @@ onUnmounted(() => {
 		<el-table-column label="Thao tác" width="160" fixed="right" align="center">
 			<template #default="{ row }">
 				<template v-if="row.row_type === 'product'">
-					<el-button
-						size="small"
-						type="primary"
-						@click="handleEdit(row)"
-					>
+					<el-button size="small" type="primary" @click="handleEdit(row)">
 						Sửa
 					</el-button>
 
-					<el-button
-						size="small"
-						type="danger"
-						@click="handleDelete(row)"
-					>
+					<el-button size="small" type="danger" @click="handleDelete(row)">
 						Xóa
 					</el-button>
 				</template>
 			</template>
 		</el-table-column>
 	</el-table>
-	<div
-		v-else
-		v-loading="loading"
-		class="inventory-opening-mobile"
-	>
-		<el-empty
-			v-if="!inventoryOpeningGroups.length"
-			description="Không có dữ liệu tồn đầu kỳ"
-		/>
+	<div v-else v-loading="loading" class="inventory-opening-mobile">
+		<el-empty v-if="!inventoryOpeningGroups.length" description="Không có dữ liệu tồn đầu kỳ" />
 
 		<el-card
 			v-for="group in inventoryOpeningGroups"
@@ -337,11 +647,7 @@ onUnmounted(() => {
 				<div>Tổng giá trị: {{ Number(group.total_cost).toLocaleString() }}</div>
 			</div>
 
-			<div
-				v-for="detail in group.details"
-				:key="detail.id"
-				class="mobile-product-item"
-			>
+			<div v-for="detail in group.details" :key="detail.id" class="mobile-product-item">
 				<div class="mobile-product-name">
 					{{ detail.product_name }}
 				</div>
@@ -388,8 +694,6 @@ onUnmounted(() => {
 	margin-top: 4px;
 	font-weight: 600;
 }
-
-
 
 .inventory-opening-toolbar {
 	display: grid;
@@ -469,7 +773,152 @@ onUnmounted(() => {
 	}
 }
 
+.inventory-opening-drawer {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
 
+.drawer-scroll {
+	flex: 1;
+	min-height: 0;
+}
 
+.drawer-content {
+	padding: 16px;
+}
 
+.drawer-main-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 320px;
+	gap: 16px;
+	align-items: start;
+}
+
+.drawer-form-panel,
+.drawer-summary-panel {
+	min-width: 0;
+}
+
+.drawer-form-panel :deep(.el-card__body) {
+	padding: 20px;
+}
+
+.drawer-form-panel :deep(.el-form-item) {
+	margin-bottom: 18px;
+}
+
+.drawer-form-panel :deep(.el-form-item__label) {
+	justify-content: flex-start;
+	font-weight: 500;
+	color: #606266;
+}
+
+.drawer-form-panel :deep(.el-form-item__content) {
+	min-width: 0;
+}
+
+.drawer-form-panel :deep(.el-select),
+.drawer-form-panel :deep(.el-date-editor),
+.drawer-form-panel :deep(.el-input-number),
+.drawer-form-panel :deep(.el-textarea) {
+	width: 100%;
+}
+
+.drawer-footer {
+	padding: 12px 16px;
+	border-top: 1px solid #ebeef5;
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	background: #fff;
+}
+
+@media (max-width: 768px) {
+	.drawer-content {
+		padding: 12px;
+	}
+
+	.drawer-main-layout {
+		grid-template-columns: 1fr;
+	}
+
+	.drawer-summary-panel {
+		order: 2;
+	}
+
+	.drawer-form-panel :deep(.el-card__body) {
+		padding: 16px;
+	}
+
+	.drawer-form-panel :deep(.el-form-item) {
+		display: block;
+		margin-bottom: 16px;
+	}
+
+	.drawer-form-panel :deep(.el-form-item__label) {
+		width: auto !important;
+		margin-bottom: 6px;
+		line-height: 1.4;
+	}
+
+	.drawer-form-panel :deep(.el-form-item__content) {
+		margin-left: 0 !important;
+	}
+
+	.drawer-footer {
+		position: sticky;
+		bottom: 0;
+	}
+}
+
+.summary-card {
+	position: sticky;
+	top: 0;
+}
+
+.summary-list {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.summary-item {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid #f0f2f5;
+}
+
+.summary-label {
+	font-size: 13px;
+	color: #909399;
+}
+
+.summary-value {
+	font-size: 14px;
+	font-weight: 500;
+	color: #303133;
+	word-break: break-word;
+}
+
+.summary-total {
+	margin-top: 8px;
+	padding: 16px;
+	border-radius: 8px;
+	background: #f5f7fa;
+}
+
+.summary-total-label {
+	font-size: 13px;
+	color: #606266;
+	margin-bottom: 6px;
+}
+
+.summary-total-value {
+	font-size: 24px;
+	font-weight: 700;
+	color: #409eff;
+}
 </style>
